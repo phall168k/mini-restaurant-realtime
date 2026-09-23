@@ -2,7 +2,7 @@ import { MigrationInterface, QueryRunner } from "typeorm";
 
 const schemaName = 'admin';
 
-export class CreateAdminSchema1790136988669 implements MigrationInterface {
+export class CreateAdminSchema1788771942538 implements MigrationInterface {
 
     public async up(queryRunner: QueryRunner): Promise<void> {
         await queryRunner.createSchema(schemaName, true);
