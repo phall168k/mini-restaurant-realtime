@@ -1,4 +1,7 @@
 import { Module } from '@nestjs/common';
+import { RoleModule } from './role/role.module';
 
-@Module({})
+@Module({
+  imports: [RoleModule]
+})
 export class SystemModule {}
