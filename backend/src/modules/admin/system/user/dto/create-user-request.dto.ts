@@ -1,6 +1,11 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
+  ArrayUnique,
+  Min,
+  Max,
+  IsArray,
   IsBoolean,
+  IsInt,
   IsNotEmpty,
   IsOptional,
   IsString,
@@ -18,10 +23,10 @@ export class CreateUserRequestDto {
   @MaxLength(250)
   username: string;
 
-  @ApiProperty({ writeOnly: true, minLength: 8, maxLength: 128 })
+  @ApiProperty({ writeOnly: true, minLength: 8, maxLength: 72 })
   @IsString()
   @MinLength(8)
-  @MaxLength(128)
+  @MaxLength(72)
   password: string;
 
   @ApiPropertyOptional({ default: false })
@@ -44,4 +49,16 @@ export class CreateUserRequestDto {
   @IsString()
   @MaxLength(2048)
   profile?: string | null;
+
+  @ApiPropertyOptional({
+    type: [Number],
+    description: 'Unique role IDs; an empty array clears all roles on update',
+  })
+  @ValidateIf((_object, value) => value !== undefined)
+  @IsArray()
+  @IsInt({ each: true })
+  @Min(1, { each: true })
+  @Max(2147483647, { each: true })
+  @ArrayUnique()
+  roles?: number[];
 }

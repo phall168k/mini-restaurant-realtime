@@ -1,5 +1,6 @@
-import { Column, Entity, PrimaryGeneratedColumn } from "typeorm";
+import { Column, Entity, ManyToMany, PrimaryGeneratedColumn } from "typeorm";
 import { BaseEntity } from "../../../../../database/entities/base.entity";
+import { UserEntity } from "../../user/entities/user.entity";
 
 @Entity({
     schema: 'admin',
@@ -34,6 +35,9 @@ export class RoleEntity extends BaseEntity {
         default: true,
     })
     status: boolean;
+
+    @ManyToMany(() => UserEntity, (user) => user.roles)
+    users: UserEntity[];
 
     constructor(partial?: Partial<RoleEntity>) {
         super();

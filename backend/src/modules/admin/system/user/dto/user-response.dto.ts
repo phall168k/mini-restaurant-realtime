@@ -1,4 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { RoleResponseDto } from '../../role/dto/role-response.dto';
 
 export class UserResponseDto {
   @ApiProperty()
@@ -24,4 +25,7 @@ export class UserResponseDto {
 
   @ApiProperty({ type: Date, nullable: true })
   deletedAt: Date | null;
+
+  @ApiProperty({ type: () => [RoleResponseDto] })
+  roles: RoleResponseDto[];
 }

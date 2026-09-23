@@ -4,7 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { BaseCrudService } from '../../../../libs/services/base-crud.service';
 import { QueryFilters } from '../../../../libs/services/pagination/filter.helper';
 import { handleError } from '../../../../libs/utils/handle-error.util';
@@ -14,6 +14,7 @@ import { UserResponseDto } from './dto/user-response.dto';
 import { UserSelectOptionResponseDto } from './dto/user-select-option-response.dto';
 import { UserEntity } from './entities/user.entity';
 import { UserMapper } from './user.mapper';
+import { RoleEntity } from '../role/entities/role.entity';
 import { PasswordHash } from '../../../../libs/utils/password-hash.util';
 
 export const USER_FILTER_FIELDS = ['username', 'status', 'isActive'];
@@ -36,7 +37,9 @@ export class UserService extends BaseCrudService<UserEntity, UserResponseDto> {
   }
 
   protected getListQuery() {
-    return this.userRepository.createQueryBuilder(this.queryName);
+    return this.userRepository
+      .createQueryBuilder(this.queryName)
+      .leftJoinAndSelect('user.roles', 'role');
   }
 
   protected getFilters(): QueryFilters<UserEntity> {
@@ -79,14 +82,20 @@ export class UserService extends BaseCrudService<UserEntity, UserResponseDto> {
     return filters;
   }
 
-  async create(dto: CreateUserRequestDto): Promise<UserResponseDto> {
+  public async create(dto: CreateUserRequestDto): Promise<UserResponseDto> {
     try {
-      const passwordHash = await PasswordHash.hash(dto.password);
-      const entity = UserMapper.toCreateEntity({
-        ...dto,
-        password: passwordHash,
+      const passwordHash = await this.hashPassword(dto.password);
+      return await this.userRepository.manager.transaction(async (manager) => {
+        const repository = manager.getRepository(UserEntity);
+        const roles = await this.getRoles(
+          manager.getRepository(RoleEntity),
+          dto.roles ?? [],
+        );
+        const entity = UserMapper.toCreateEntity(dto, passwordHash);
+        entity.roles = Promise.resolve(roles);
+        const saved = await repository.save(entity);
+        return UserMapper.toDto(await this.getEntity(saved.id, repository));
       });
-      return UserMapper.toDto(await this.userRepository.save(entity));
     } catch (error) {
       handleError(error);
     }
@@ -103,40 +112,100 @@ export class UserService extends BaseCrudService<UserEntity, UserResponseDto> {
     }
   }
 
-  async findOne(id: number): Promise<UserResponseDto> {
+  public async findOne(id: number): Promise<UserResponseDto> {
     try {
-      return UserMapper.toDto(await this.getEntity(id));
+      return await UserMapper.toDto(await this.getEntity(id));
     } catch (error) {
       handleError(error);
     }
   }
 
-  async update(
+  public async findOneByUsername(username: string): Promise<UserEntity | null> {
+    return this.userRepository.findOne({
+      where: { username },
+      relations: { roles: true },
+    });
+  }
+
+  public async update(
     id: number,
     dto: UpdateUserRequestDto,
   ): Promise<UserResponseDto> {
     try {
-      const entity = await this.getEntity(id);
-      UserMapper.toUpdateEntity(entity, dto);
-      return UserMapper.toDto(await this.userRepository.save(entity));
+      const passwordHash =
+        dto.password === undefined
+          ? undefined
+          : await this.hashPassword(dto.password);
+      return await this.userRepository.manager.transaction(async (manager) => {
+        const repository = manager.getRepository(UserEntity);
+        const entity = await repository.findOneBy({ id });
+        if (!entity) throw new NotFoundException('User not found');
+
+        UserMapper.toUpdateEntity(entity, dto, passwordHash);
+        if (dto.roles !== undefined) {
+          entity.roles = Promise.resolve(
+            await this.getRoles(manager.getRepository(RoleEntity), dto.roles),
+          );
+        }
+        await repository.save(entity);
+        return UserMapper.toDto(await this.getEntity(id, repository));
+      });
     } catch (error) {
       handleError(error);
     }
   }
 
-  async remove(id: number): Promise<UserResponseDto> {
+  public async remove(id: number): Promise<UserResponseDto> {
     try {
       const entity = await this.getEntity(id);
-      return UserMapper.toDto(await this.userRepository.softRemove(entity));
+      return await UserMapper.toDto(
+        await this.userRepository.softRemove(entity),
+      );
     } catch (error) {
       handleError(error);
     }
   }
 
-  private async getEntity(id: number): Promise<UserEntity> {
-    const entity = await this.userRepository.findOneBy({ id });
+  private async getEntity(
+    id: number,
+    repository = this.userRepository,
+  ): Promise<UserEntity> {
+    const entity = await repository.findOne({
+      where: { id },
+      relations: { roles: true },
+    });
     if (!entity) throw new NotFoundException('User not found');
     return entity;
   }
 
+  private async getRoles(
+    repository: Repository<RoleEntity>,
+    ids: number[],
+  ): Promise<RoleEntity[]> {
+    if (
+      !Array.isArray(ids) ||
+      ids.some((id) => !Number.isInteger(id) || id < 1 || id > 2147483647)
+    ) {
+      throw new BadRequestException('roles must contain positive integer IDs');
+    }
+    const uniqueIds = [...new Set(ids)];
+    if (uniqueIds.length !== ids.length)
+      throw new BadRequestException('roles must contain unique IDs');
+    if (!ids.length) return [];
+    const roles = await repository.findBy({ id: In(ids) });
+    if (roles.length !== ids.length)
+      throw new NotFoundException('One or more roles were not found');
+    return roles;
+  }
+
+  private async hashPassword(password: string): Promise<string> {
+    // bcrypt only processes the first 72 bytes, including multi-byte characters.
+    if (
+      typeof password !== 'string' ||
+      Buffer.byteLength(password, 'utf8') > 72
+    ) {
+      throw new BadRequestException('Password must not exceed 72 UTF-8 bytes');
+    }
+    return PasswordHash.hash(password);
+  }
 }
