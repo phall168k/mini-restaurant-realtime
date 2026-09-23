@@ -1,0 +1,43 @@
+name: mini-restaurant-realtime
+
+services:
+# =====================================
+# Postgres
+# =====================================
+  restaurant-postgres:
+    image: postgres:16-alpine
+    container_name: restaurant-postgres
+    ports:
+      - "${DB_PORT}"
+    environment:
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_DATABASE}
+    volumes:
+      - mini_restaurant_realtime_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - external_network
+    restart: unless-stopped
+
+# =====================================
+# Volumes
+# =====================================
+volumes:
+  mini_restaurant_realtime_postgres_data:
+
+# =====================================
+# Network
+# =====================================
+networks:
+  external_network:
+    driver: bridge

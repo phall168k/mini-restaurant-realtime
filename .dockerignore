@@ -1,0 +1,57 @@
+# Apply rules at every depth for root and nested app build contexts.
+
+# Dependencies (install inside the image using package manifests and lockfiles)
+**/node_modules
+**/.pnpm-store
+
+# NestJS / TypeScript build output (build inside the image)
+**/dist
+**/build
+**/*.tsbuildinfo
+
+# NuxtJS generated files and output
+**/.nuxt
+**/.output
+**/.data
+**/.nitro
+**/.cache
+**/.nuxi
+
+# Test coverage
+**/coverage
+**/.nyc_output
+
+# Logs
+**/logs
+**/*.log
+**/npm-debug.log*
+**/yarn-debug.log*
+**/yarn-error.log*
+**/pnpm-debug.log*
+
+# Local environment variables (keep shareable templates)
+**/.env
+**/.env.*
+!**/.env.example
+!**/.env.sample
+!**/.env.template
+
+# Version control and local workspace configuration
+**/.git
+**/.gitignore
+**/.idea
+**/.vscode
+**/.agents
+**/.codex
+
+# Tool caches
+**/.eslintcache
+**/.stylelintcache
+**/.prettiercache
+
+# Operating system and editor temporary files
+**/.DS_Store
+**/Thumbs.db
+**/*.swp
+**/*.swo
+**/*~
