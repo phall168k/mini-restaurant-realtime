@@ -30,6 +30,7 @@ import { UpdateUserRequestDto } from './dto/update-user-request.dto';
 import { UserResponseDto } from './dto/user-response.dto';
 import { UserSelectOptionResponseDto } from './dto/user-select-option-response.dto';
 import { UserService } from './user.service';
+import { SuperUser } from '../../../auth/decorators/super-user.decorator';
 
 @ApiTags('Users')
 @ApiBearerAuth(SWAGGER_TOKEN_NAME)
@@ -40,6 +41,7 @@ export class UserController {
   constructor(private readonly userService: UserService) {}
 
   @Post()
+  @SuperUser()
   @ApiOperation({ summary: 'Create a user' })
   @ApiCreatedResponse({ type: UserResponseDto })
   @ApiConflictResponse({ description: 'Username already exists' })
@@ -48,6 +50,7 @@ export class UserController {
   }
 
   @Get()
+  @SuperUser()
   @ApiOperation({ summary: 'Get a paginated user list' })
   @ApiPaginatedResponse(UserResponseDto)
   @ApiQuery({ name: 'search', type: String, required: false })
@@ -67,6 +70,7 @@ export class UserController {
   }
 
   @Get('select-options')
+  @SuperUser()
   @ApiOperation({ summary: 'Get user select options' })
   @ApiOkResponse({ type: UserSelectOptionResponseDto, isArray: true })
   findForSelectOptions(): Promise<UserSelectOptionResponseDto[]> {
@@ -74,6 +78,7 @@ export class UserController {
   }
 
   @Get(':id')
+  @SuperUser()
   @ApiOkResponse({ type: UserResponseDto })
   @ApiNotFoundResponse({ description: 'User not found' })
   findOne(@Param('id', ParseIntPipe) id: number): Promise<UserResponseDto> {
@@ -81,6 +86,7 @@ export class UserController {
   }
 
   @Put(':id')
+  @SuperUser()
   @ApiOkResponse({ type: UserResponseDto })
   @ApiNotFoundResponse({ description: 'User not found' })
   @ApiConflictResponse({ description: 'Username already exists' })
@@ -92,6 +98,7 @@ export class UserController {
   }
 
   @Delete(':id')
+  @SuperUser()
   @ApiOperation({ summary: 'Soft-delete a user' })
   @ApiOkResponse({ type: UserResponseDto })
   @ApiNotFoundResponse({ description: 'User not found' })
