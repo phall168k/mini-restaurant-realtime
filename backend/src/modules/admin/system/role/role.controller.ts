@@ -10,6 +10,7 @@ import { ApiPaginatedResponse } from '../../../../libs/services/pagination/decor
 import { PaginationParams } from '../../../../libs/services/pagination/decorators/pagination-params.decorator';
 import { PaginationResponseDto } from '../../../../libs/services/pagination/pagination-response.dto';
 import { RoleSelectOptionResponseDto } from './dto/role-select-option-response.dto';
+import { SuperUser } from '../../../auth/decorators/super-user.decorator';
 
 @ApiTags('Roles')
 @ApiBearerAuth(SWAGGER_TOKEN_NAME)
@@ -21,6 +22,7 @@ export class RoleController {
   constructor(private readonly roleService: RoleService) {}
 
   @Post()
+  @SuperUser()
   @ApiOperation({ summary: 'Create a role' })
   @ApiOkResponse({ type: RoleResponseDto })
   @ApiConflictResponse({ description: 'This role already created', })
@@ -31,6 +33,7 @@ export class RoleController {
   }
 
   @Get()
+  @SuperUser()
   @ApiOperation({ description: 'Find all roles' })
   @ApiPaginatedResponse(RoleResponseDto)
   @ApiQuery({ name: 'search',type: 'string', required: false, example: '', })
@@ -39,6 +42,7 @@ export class RoleController {
   }
 
   @Get('select-options')
+  @SuperUser()
   @ApiOperation({ summary: 'Find for select options' })
   @ApiOkResponse({ type: [RoleSelectOptionResponseDto] })
   @ApiUnauthorizedResponse({ description: 'Unauthorized' })
@@ -47,6 +51,7 @@ export class RoleController {
   }
 
   @Get(':id')
+  @SuperUser()
   @ApiOperation({ summary: 'Find a role by id' })
   @ApiOkResponse({ type: RoleResponseDto })
   @ApiNotFoundResponse({ description: 'Role not found' })
@@ -57,6 +62,7 @@ export class RoleController {
   }
 
   @Put(':id')
+  @SuperUser()
   @ApiOperation({ summary: 'Update a role by id' })
   @ApiOkResponse({ type: RoleResponseDto })
   @ApiNotFoundResponse({ description: 'Role not found' })
@@ -67,6 +73,7 @@ export class RoleController {
   }
 
   @Delete(':id')
+  @SuperUser()
   @ApiOperation({ summary: 'Delete a role by id' })
   @ApiOkResponse({ type: RoleResponseDto })
   @ApiNotFoundResponse({ description: 'Role not found' })
