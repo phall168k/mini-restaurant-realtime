@@ -13,5 +13,21 @@ export default defineNuxtConfig({
     '@nuxtjs/tailwindcss',
     '@pinia/nuxt',
     '@element-plus/nuxt',
+    '@nuxtjs/google-fonts',
   ],
+  googleFonts: {
+    families: {
+      Nokora: true,
+    }
+  },
+  tailwindcss: {
+    config: {
+      theme: {
+        fontFamily: {
+          sans: ['"Nokora"', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+          Nokora: ['"Nokora"', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        }
+      }
+    }
+  },
 })
