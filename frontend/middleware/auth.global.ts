@@ -4,13 +4,13 @@ export default defineNuxtRouteMiddleware((to) => {
   const isAuthenticated = !!token.value
 
   if (to.path.startsWith('/auth')) {
-    if (isAuthenticated && to.path === '/auth/login') {
+    if (isAuthenticated && to.path === '/auth/sign-in') {
       return navigateTo('/')
     }
     return
   }
 
   if (!isAuthenticated) {
-    return navigateTo('/auth/login')
+    return navigateTo('/auth/sign-in')
   }
 })
