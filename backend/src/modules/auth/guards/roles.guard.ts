@@ -5,6 +5,7 @@ import {
   Injectable,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
+import { SUPER_USER_KEY } from '../decorators/super-user.decorator';
 import { UserResponseDto } from '../../admin/system/user/dto/user-response.dto';
 import { UserEntity } from '../../admin/system/user/entities/user.entity';
 
@@ -17,11 +18,15 @@ export class RolesGuard implements CanActivate {
   constructor(private readonly reflector: Reflector) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
+    const superUserOnly = this.reflector.getAllAndOverride<boolean>(
+      SUPER_USER_KEY,
+      [context.getHandler(), context.getClass()],
+    );
     const requiredRoles = this.reflector.getAllAndOverride<string[]>('roles', [
       context.getHandler(),
       context.getClass(),
     ]);
-    if (!requiredRoles?.length) {
+    if (!superUserOnly && !requiredRoles?.length) {
       return true;
     }
 
@@ -30,6 +35,10 @@ export class RolesGuard implements CanActivate {
 
     if (user.isSuperUser === true) {
       return true;
+    }
+
+    if (superUserOnly) {
+      throw new ForbiddenException('Superuser access required');
     }
 
     const roles = await user.roles;
