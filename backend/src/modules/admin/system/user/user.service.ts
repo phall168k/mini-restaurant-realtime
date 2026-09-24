@@ -120,11 +120,18 @@ export class UserService extends BaseCrudService<UserEntity, UserResponseDto> {
     }
   }
 
-  public async findOneByUsername(username: string): Promise<UserEntity | null> {
-    return this.userRepository.findOne({
-      where: { username },
-      relations: { roles: true },
-    });
+  public async findOneByUsername(
+    username: string,
+    includePassword = false,
+  ): Promise<UserEntity | null> {
+    if (typeof username !== 'string' || !username.trim()) return null;
+
+    const query = this.userRepository
+      .createQueryBuilder('user')
+      .leftJoinAndSelect('user.roles', 'role')
+      .where('user.username = :username', { username });
+    if (includePassword) query.addSelect('user.password');
+    return query.getOne();
   }
 
   public async update(
