@@ -14,6 +14,9 @@ export class UserResponseDto {
   @ApiProperty({ default: true })
   isActive: boolean;
 
+  @ApiProperty({ type: Boolean, nullable: true, default: null })
+  isSuperUser: boolean | null;
+
   @ApiProperty({ type: String, nullable: true })
   profile: string | null;
 

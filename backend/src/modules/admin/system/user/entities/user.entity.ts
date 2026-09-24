@@ -41,6 +41,14 @@ export class UserEntity extends BaseEntity {
   isActive: boolean;
 
   @Column({
+    name: 'is_super_user',
+    type: 'boolean',
+    nullable: true,
+    default: null,
+  })
+  isSuperUser: boolean | null;
+
+  @Column({
     type: 'varchar',
     length: 2048,
     nullable: true,

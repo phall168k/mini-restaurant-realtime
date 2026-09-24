@@ -13,6 +13,7 @@ export class UserMapper {
         dto.username = entity.username;
         dto.status = entity.status;
         dto.isActive = entity.isActive;
+        dto.isSuperUser = entity.isSuperUser ?? null;
         dto.profile = entity.profile ?? null;
         dto.createdAt = entity.createdAt;
         dto.updatedAt = entity.updatedAt;
@@ -40,6 +41,7 @@ export class UserMapper {
         entity.password = passwordHash;
         entity.status = dto.status ?? false;
         entity.isActive = dto.isActive ?? true;
+        entity.isSuperUser = dto.isSuperUser ?? null;
         entity.profile = dto.profile ?? null;
         return entity;
     }
@@ -48,6 +50,7 @@ export class UserMapper {
         if (dto.username !== undefined) entity.username = dto.username;
         if (dto.status !== undefined) entity.status = dto.status;
         if (dto.isActive !== undefined) entity.isActive = dto.isActive;
+        if (dto.isSuperUser !== undefined) entity.isSuperUser = dto.isSuperUser;
         if (dto.profile !== undefined) entity.profile = dto.profile;
         if (passwordHash !== undefined) entity.password = passwordHash;
 

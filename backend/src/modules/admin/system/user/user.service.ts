@@ -17,7 +17,7 @@ import { UserMapper } from './user.mapper';
 import { RoleEntity } from '../role/entities/role.entity';
 import { PasswordHash } from '../../../../libs/utils/password-hash.util';
 
-export const USER_FILTER_FIELDS = ['username', 'status', 'isActive'];
+export const USER_FILTER_FIELDS = ['username', 'status', 'isActive', 'isSuperUser'];
 
 @Injectable()
 export class UserService extends BaseCrudService<UserEntity, UserResponseDto> {
@@ -44,7 +44,7 @@ export class UserService extends BaseCrudService<UserEntity, UserResponseDto> {
 
   protected getFilters(): QueryFilters<UserEntity> {
     const filters: QueryFilters<UserEntity> = {};
-    for (const field of ['status', 'isActive']) {
+    for (const field of ['status', 'isActive', 'isSuperUser']) {
       filters[field] = (query, value) => {
         if (
           value !== true &&

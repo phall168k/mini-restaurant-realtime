@@ -39,6 +39,11 @@ export class CreateUserRequestDto {
   @IsBoolean()
   isActive?: boolean;
 
+  @ApiPropertyOptional({ type: Boolean, nullable: true, default: null })
+  @IsOptional()
+  @IsBoolean()
+  isSuperUser?: boolean | null;
+
   @ApiPropertyOptional({
     type: String,
     nullable: true,
