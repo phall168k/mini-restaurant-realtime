@@ -14,6 +14,7 @@ export default defineNuxtConfig({
     '@pinia/nuxt',
     '@element-plus/nuxt',
     '@nuxtjs/google-fonts',
+    '@nuxtjs/i18n',
   ],
   googleFonts: {
     families: {
@@ -29,5 +30,14 @@ export default defineNuxtConfig({
         }
       }
     }
+  },
+  i18n: {
+    locales: [
+      { code: 'en', file: 'en.json', language: 'en-US' },
+      { code: 'km', file: 'km.json', language: 'KH' }
+    ],
+    defaultLocale: 'en',
+    langDir: 'locales/',     // folder name
+    strategy: 'no_prefix',   // /page (no /en/page)
   },
 })
