@@ -5,6 +5,8 @@ import { UserEntity } from '../../modules/admin/system/user/entities/user.entity
 import { PasswordHash } from '../../libs/utils/password-hash.util';
 import { roles } from './roles.seed';
 import { users } from './users.seed';
+import { CategoryEntity } from '../../modules/admin/master-data/category/entities/category.entity';
+import { categories } from './category.seed';
 
 export default class MainSeeder implements Seeder {
     public async run(database: DataSource): Promise<void> {
@@ -72,6 +74,8 @@ export default class MainSeeder implements Seeder {
                         .add(assignedRoles.map((role) => role.id));
                 }
             }
+
+            await manager.save(CategoryEntity, categories);
         });
     }
 }
