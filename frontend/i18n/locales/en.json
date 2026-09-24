@@ -1,5 +1,11 @@
 {
     "app": {
         "name": "Mini Restaurant Management System"
+    },
+    "sign_in": {
+        "username": "Username",
+        "password": "Password",
+        "forgot_password": "Forgot Password",
+        "sign_in": "Sign In"
     }
 }

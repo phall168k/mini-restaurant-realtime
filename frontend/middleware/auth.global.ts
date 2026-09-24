@@ -1,5 +1,5 @@
 export default defineNuxtRouteMiddleware((to) => {
-  const token = useCookie('token')
+  const token = useCookie('accessToken')
 
   const isAuthenticated = !!token.value
 
