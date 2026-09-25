@@ -91,7 +91,7 @@ function isActive(path: string) {
     <NuxtLink to="/" aria-label="Mini Restaurant dashboard" class="flex h-[72px] shrink-0 items-center gap-3 overflow-hidden whitespace-nowrap px-[22px] focus-visible:outline focus-visible:outline-teal-700">
       <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-teal-700 text-3xl font-extrabold text-white">m<span class="text-teal-200">.</span></span>
       <span :class="{ 'md:hidden': collapsed }">
-        <strong class="block text-sm">Mini Restaurant</strong>
+        <strong class="block text-sm">{{ $t('app.name') }}</strong>
         <small class="mt-1 block text-[8px] tracking-widest text-slate-500">MANAGEMENT SYSTEM</small>
       </span>
     </NuxtLink>
