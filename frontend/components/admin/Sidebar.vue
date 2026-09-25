@@ -1,16 +1,21 @@
 <script setup lang="ts">
 import { Close } from '@element-plus/icons-vue'
+import { RoleEnum } from '~/constants/role.enum'
+import type { IUser } from '~/types/user'
 
 defineProps<{ collapsed: boolean; mobileOpen: boolean }>()
 const emit = defineEmits<{ close: [] }>()
 const route = useRoute()
 const { t } = useI18n()
+const users = useCookie<IUser | null>('users')
 
 interface MenuItem {
   label: string
   to: string
   icon: string
   enabled: boolean
+  roles?: RoleEnum[]
+  superUserOnly?: boolean
 }
 
 const groups = computed<{ label: string; items: MenuItem[] }[]>(() => [
@@ -32,12 +37,14 @@ const groups = computed<{ label: string; items: MenuItem[] }[]>(() => [
         label: t('role.title'), 
         to: '/admin/system/role', 
         icon: 'hugeicons:shield-01', 
+        superUserOnly: true,
         enabled: true 
       },
       { 
         label: t('user.title'), 
         to: '/admin/system/user', 
         icon: 'boxicons:user-id-card', 
+        superUserOnly: true,
         enabled: true 
       },
     ],
@@ -49,11 +56,28 @@ const groups = computed<{ label: string; items: MenuItem[] }[]>(() => [
         label: t('category.title'),
         to: '/admin/master-data/category',
         icon: 'hugeicons:folder-01',
+        roles: [RoleEnum.ADMIN],
         enabled: true
       },
     ],
   },
 ])
+
+function canViewItem(item: MenuItem) {
+  if (users.value?.isSuperUser === true) return true
+  if (item.superUserOnly) return false
+  // Omit roles (or use an empty array) for items available to everyone.
+  if (!item.roles?.length) return true
+  const userRoles = users.value?.roles
+  return Array.isArray(userRoles) && userRoles.some(
+    role => role?.status === true && item.roles!.includes(role.name as RoleEnum),
+  )
+}
+
+const visibleGroups = computed(() => groups.value
+  .map(group => ({ ...group, items: group.items.filter(canViewItem) }))
+  .filter(group => group.items.length > 0),
+)
 
 function isActive(path: string) {
   return route.path === path || (path !== '/' && route.path.startsWith(`${path}/`))
@@ -76,7 +100,7 @@ function isActive(path: string) {
     </button>
 
     <nav class="flex-1 space-y-7 overflow-y-auto overflow-x-hidden px-3.5 pb-6 pt-14 md:pt-6">
-      <section v-for="group in groups" :key="group.label" :aria-label="group.label">
+      <section v-for="group in visibleGroups" :key="group.label" :aria-label="group.label">
         <h2 class="mb-2.5 mx-3 h-4 whitespace-nowrap text-[10px] font-bold uppercase tracking-widest text-slate-500" :class="{ 'md:invisible': collapsed }">{{ group.label }}</h2>
         <ul class="space-y-1">
           <li v-for="item in group.items" :key="item.to">
