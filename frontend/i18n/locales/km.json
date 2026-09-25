@@ -147,5 +147,9 @@
         "delete_confirm": "តើអ្នកចង់លុបប្រភេទ «{name}» មែនទេ?",
         "edit_label": "កែប្រែ {name}",
         "delete_label": "លុប {name}"
+    },
+    "language": {
+        "select": "ប្តូរភាសា (បច្ចុប្បន្ន៖ {name})",
+        "change_error": "មិនអាចប្តូរភាសាបានទេ។ សូមព្យាយាមម្តងទៀត។"
     }
 }

@@ -2,7 +2,10 @@
 import { Menu } from '@element-plus/icons-vue'
 import AdminSidebar from '~/components/admin/Sidebar.vue'
 import AdminBreadcrumbs from '~/components/admin/Breadcrumbs.vue'
+import type { ILanguage } from '~/types/language'
 
+const { t, locale, setLocale } = useI18n()
+const changingLanguage = ref(false)
 const route = useRoute()
 const auth = useAuthStore()
 const collapsed = ref(false)
@@ -11,6 +14,7 @@ const mobileOpen = ref(false)
 const displayName = computed(() => auth.user?.username || auth.users?.username || 'Administrator')
 const initials = computed(() => displayName.value.slice(0, 2).toUpperCase())
 const pageTitle = computed(() => {
+  if (typeof route.meta.titleKey === 'string') return t(route.meta.titleKey)
   if (typeof route.meta.title === 'string') return route.meta.title
   const segment = route.path.split('/').filter(Boolean).at(-1)
   return segment ? segment.replace(/[-_]/g, ' ').replace(/\b\w/g, letter => letter.toUpperCase()) : 'Dashboard'
@@ -22,6 +26,33 @@ function closeNavigation() {
 
 function handleKeydown(event: KeyboardEvent) {
   if (event.key === 'Escape') closeNavigation()
+}
+
+const languages = ref<ILanguage[]>([
+  {
+    key: 'en',
+    name: 'English',
+    flag: 'circle-flags:us',
+  },
+  {
+    key: 'km',
+    name: 'ភាសាខ្មែរ',
+    flag: 'circle-flags:kh',
+  },
+])
+
+const currentLanguage = computed(() => languages.value.find(language => language.key === locale.value) || languages.value[0]!)
+
+async function changeLanguage(language: string) {
+  if (changingLanguage.value || language === locale.value || (language !== 'en' && language !== 'km')) return
+  changingLanguage.value = true
+  try {
+    await setLocale(language)
+  } catch {
+    useMessage(t('language.change_error'), 'error')
+  } finally {
+    changingLanguage.value = false
+  }
 }
 
 watch(() => route.fullPath, closeNavigation)
@@ -49,6 +80,36 @@ onBeforeUnmount(() => window.removeEventListener('keydown', handleKeydown))
         <AdminBreadcrumbs />
       </div>
       <div class="flex shrink-0 items-center gap-3">
+        <el-dropdown
+          trigger="click"
+          :disabled="changingLanguage"
+          @command="changeLanguage"
+        >
+          <button
+            type="button"
+            class="h-[30px] w-[30px] rounded-full border flex items-center justify-center cursor-pointer"
+            :disabled="changingLanguage"
+            :aria-label="t('language.select', { name: currentLanguage.name })"
+            :title="t('language.select', { name: currentLanguage.name })"
+          >
+            <Icon :size="30" :name="currentLanguage.flag"/>
+          </button>
+          <template #dropdown>
+            <el-dropdown-menu>
+              <el-dropdown-item
+                v-for="language in languages"
+                :key="language.key"
+                :command="language.key"
+                :disabled="language.key === locale || changingLanguage"
+              >
+                <div class="flex items-center gap-2" :lang="language.key">
+                  <Icon :size="20" :name="language.flag"/>
+                  <span>{{ language.name }}</span>
+                </div>
+              </el-dropdown-item>
+            </el-dropdown-menu>
+          </template>
+        </el-dropdown>
         <div class="hidden text-right sm:block">
           <strong class="block max-w-40 truncate text-xs font-semibold">{{ displayName }}</strong>
           <small class="mt-1 block text-[10px] text-slate-500">Restaurant management</small>

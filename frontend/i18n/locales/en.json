@@ -152,5 +152,9 @@
         "delete_confirm": "Delete the category \"{name}\"?",
         "edit_label": "Edit {name}",
         "delete_label": "Delete {name}"
+    },
+    "language": {
+        "select": "Change language (current: {name})",
+        "change_error": "Unable to change language. Please try again."
     }
 }

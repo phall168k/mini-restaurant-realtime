@@ -35,9 +35,14 @@ export default defineNuxtConfig({
   i18n: {
     locales: [
       { code: 'en', file: 'en.json', language: 'en-US' },
-      { code: 'km', file: 'km.json', language: 'KH' }
+      { code: 'km', file: 'km.json', language: 'km-KH' }
     ],
     defaultLocale: 'en',
+    detectBrowserLanguage: {
+      useCookie: true,
+      cookieKey: 'i18n_redirected',
+      redirectOn: 'all',
+    },
     langDir: 'locales/',     // folder name
     strategy: 'no_prefix',   // /page (no /en/page)
   },
