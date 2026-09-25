@@ -156,5 +156,8 @@
     "language": {
         "select": "Change language (current: {name})",
         "change_error": "Unable to change language. Please try again."
+    },
+    "notification": {
+        "unread": "More than 9 unread notifications"
     }
 }

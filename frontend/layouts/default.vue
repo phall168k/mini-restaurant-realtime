@@ -117,6 +117,20 @@ onBeforeUnmount(() => window.removeEventListener('keydown', handleKeydown))
             </el-dropdown-menu>
           </template>
         </el-dropdown>
+        <div
+          class="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-slate-500 transition-colors bg-slate-100 hover:text-slate-700 cursor-pointer"
+          role="img"
+          :aria-label="t('notification.unread')"
+          :title="t('notification.unread')"
+        >
+          <Icon :size="24" name="hugeicons:notification-01" aria-hidden="true"/>
+          <span
+            class="absolute -right-1 -top-1 flex h-[15px] min-w-[15px] items-center justify-center rounded-full bg-red-500 px-1 pt-1 text-[9px] font-semibold leading-none text-white ring-2 ring-white"
+            aria-hidden="true"
+          >
+            9
+          </span>
+        </div>
         <div class="hidden text-right sm:block">
           <strong class="block max-w-40 truncate text-xs font-semibold">{{ displayName }}</strong>
           <small class="mt-1 block text-[10px] text-slate-500">{{ displayRoles }}</small>
