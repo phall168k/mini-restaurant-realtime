@@ -12,6 +12,13 @@ const collapsed = ref(false)
 const mobileOpen = ref(false)
 
 const displayName = computed(() => auth.user?.username || auth.users?.username || 'Administrator')
+const displayRoles = computed(() => {
+  const user = auth.users || auth.user
+  if (user?.isSuperUser === true) return t('user.super_user')
+  const roles = Array.isArray(user?.roles) ? user.roles : []
+  const names = [...new Set(roles.map(role => role.name).filter(Boolean))]
+  return names.length ? names.join(', ') : t('user.no_roles')
+})
 const initials = computed(() => displayName.value.slice(0, 2).toUpperCase())
 const pageTitle = computed(() => {
   if (typeof route.meta.titleKey === 'string') return t(route.meta.titleKey)
@@ -112,7 +119,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', handleKeydown))
         </el-dropdown>
         <div class="hidden text-right sm:block">
           <strong class="block max-w-40 truncate text-xs font-semibold">{{ displayName }}</strong>
-          <small class="mt-1 block text-[10px] text-slate-500">Restaurant management</small>
+          <small class="mt-1 block text-[10px] text-slate-500">{{ displayRoles }}</small>
         </div>
         <span class="flex h-9 w-9 items-center justify-center rounded-full bg-teal-50 text-xs font-bold text-teal-700" :aria-label="displayName">{{ initials }}</span>
       </div>

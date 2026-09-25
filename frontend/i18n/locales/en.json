@@ -93,7 +93,7 @@
         "roles_error": "Unable to load roles. Please try again.",
         "no_roles": "No roles",
         "is_active": "Account active",
-        "super_user": "Super user",
+        "super_user": "Super User",
         "unset": "Not set",
         "yes": "Yes",
         "no": "No",
