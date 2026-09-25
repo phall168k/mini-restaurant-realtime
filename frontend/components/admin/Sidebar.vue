@@ -42,6 +42,17 @@ const groups = computed<{ label: string; items: MenuItem[] }[]>(() => [
       },
     ],
   },
+  {
+    label: t('navigation.master_data'),
+    items: [
+      {
+        label: t('category.title'),
+        to: '/admin/master-data/category',
+        icon: 'hugeicons:folder-01',
+        enabled: true
+      },
+    ],
+  },
 ])
 
 function isActive(path: string) {

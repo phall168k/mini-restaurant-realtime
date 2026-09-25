@@ -15,7 +15,7 @@ const breadcrumbs = computed(() => {
     const isCurrent = index === segments.length - 1
     const title = isCurrent ? route.meta.title : match.meta.title
     const titleKey = isCurrent ? route.meta.titleKey : match.meta.titleKey
-    const segmentKey = ({ admin: 'navigation.admin', system: 'navigation.system' } as Record<string, string>)[segment]
+    const segmentKey = ({ admin: 'navigation.admin', system: 'navigation.system', 'master-data': 'navigation.master_data' } as Record<string, string>)[segment]
     items.push({
       label: typeof titleKey === 'string' ? t(titleKey) : segmentKey ? t(segmentKey) : typeof title === 'string' ? title : segment.replace(/[-_]/g, ' ').replace(/\b\w/g, letter => letter.toUpperCase()),
       path,
