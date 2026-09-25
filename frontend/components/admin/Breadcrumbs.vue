@@ -2,19 +2,22 @@
 import { ArrowRight, House } from '@element-plus/icons-vue'
 
 const route = useRoute()
+const { t } = useI18n()
 const router = useRouter()
 
 const breadcrumbs = computed(() => {
   const segments = route.path.split('/').filter(Boolean)
-  const items = [{ label: 'Dashboard', path: '/', linked: segments.length > 0 }]
+  const items = [{ label: t('navigation.dashboard'), path: '/', linked: segments.length > 0 }]
 
   segments.forEach((segment, index) => {
     const path = `/${segments.slice(0, index + 1).join('/')}`
     const match = router.resolve(path)
     const isCurrent = index === segments.length - 1
     const title = isCurrent ? route.meta.title : match.meta.title
+    const titleKey = isCurrent ? route.meta.titleKey : match.meta.titleKey
+    const segmentKey = ({ admin: 'navigation.admin', system: 'navigation.system' } as Record<string, string>)[segment]
     items.push({
-      label: typeof title === 'string' ? title : segment.replace(/[-_]/g, ' ').replace(/\b\w/g, letter => letter.toUpperCase()),
+      label: typeof titleKey === 'string' ? t(titleKey) : segmentKey ? t(segmentKey) : typeof title === 'string' ? title : segment.replace(/[-_]/g, ' ').replace(/\b\w/g, letter => letter.toUpperCase()),
       path,
       linked: !isCurrent && match.matched.length > 0,
     })
@@ -25,7 +28,7 @@ const breadcrumbs = computed(() => {
 </script>
 
 <template>
-  <nav aria-label="Breadcrumb" class="min-w-0">
+  <nav :aria-label="t('navigation.breadcrumb')" class="min-w-0">
     <ol class="flex flex-wrap items-center gap-2 text-xs text-slate-500">
       <li v-for="(item, index) in breadcrumbs" :key="item.path" class="flex min-w-0 items-center gap-2">
         <ArrowRight v-if="index" aria-hidden="true" class="h-3 w-3 shrink-0 text-slate-400" />

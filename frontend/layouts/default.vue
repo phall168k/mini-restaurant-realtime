@@ -59,7 +59,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', handleKeydown))
 
     <main id="main-content" tabindex="-1" class="flex min-h-screen flex-col px-5 pb-5 pt-24 transition-[margin-left] duration-200 motion-reduce:transition-none md:px-8 md:pt-[104px]"
       :class="collapsed ? 'md:ml-20' : 'md:ml-[248px]'">
-      <div class="mb-6">
+      <div v-if="!route.meta.hidePageHeader" class="mb-6">
         <p class="mb-2 text-[10px] tracking-widest text-slate-500">YOUR WORKSPACE</p>
         <h1 class="text-2xl font-semibold tracking-tight">{{ pageTitle }}</h1>
       </div>

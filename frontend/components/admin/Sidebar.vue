@@ -4,6 +4,7 @@ import { Close } from '@element-plus/icons-vue'
 defineProps<{ collapsed: boolean; mobileOpen: boolean }>()
 const emit = defineEmits<{ close: [] }>()
 const route = useRoute()
+const { t } = useI18n()
 
 interface MenuItem {
   label: string
@@ -12,19 +13,25 @@ interface MenuItem {
   enabled: boolean
 }
 
-const groups: { label: string; items: MenuItem[] }[] = [
-  { 
-    label: 'Workspace', 
+const groups = computed<{ label: string; items: MenuItem[] }[]>(() => [
+  {
+    label: t('navigation.workspace'),
     items: [
-      { 
-        label: 'Dashboard', 
-        to: '/', icon: 'hugeicons:dashboard-square-02', 
-        enabled: true 
+      {
+        label: t('navigation.dashboard'),
+        to: '/', icon: 'hugeicons:dashboard-square-02',
+        enabled: true
       }
-    
+
     ]
   },
-]
+  {
+    label: t('navigation.system'),
+    items: [
+      { label: t('role.title'), to: '/admin/system/role', icon: 'hugeicons:shield-01', enabled: true },
+    ],
+  },
+])
 
 function isActive(path: string) {
   return route.path === path || (path !== '/' && route.path.startsWith(`${path}/`))
