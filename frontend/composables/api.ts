@@ -10,7 +10,7 @@ export const useApi = async <T>(
   } = {},
   authOnly: boolean = true
 ): Promise<T> => {
-  const accessToken = useCookie('token');
+  const accessToken = useCookie('accessToken');
   const config = useRuntimeConfig()
 
   try {
