@@ -28,7 +28,18 @@ const groups = computed<{ label: string; items: MenuItem[] }[]>(() => [
   {
     label: t('navigation.system'),
     items: [
-      { label: t('role.title'), to: '/admin/system/role', icon: 'hugeicons:shield-01', enabled: true },
+      { 
+        label: t('role.title'), 
+        to: '/admin/system/role', 
+        icon: 'hugeicons:shield-01', 
+        enabled: true 
+      },
+      { 
+        label: t('user.title'), 
+        to: '/admin/system/user', 
+        icon: 'boxicons:user-id-card', 
+        enabled: true 
+      },
     ],
   },
 ])
