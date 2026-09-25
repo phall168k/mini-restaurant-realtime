@@ -59,6 +59,13 @@ const groups = computed<{ label: string; items: MenuItem[] }[]>(() => [
         roles: [RoleEnum.ADMIN],
         enabled: true
       },
+      {
+        label: t('item.title'),
+        to: '/admin/master-data/item',
+        icon: 'hugeicons:package',
+        roles: [RoleEnum.ADMIN],
+        enabled: true
+      },
     ],
   },
 ])
