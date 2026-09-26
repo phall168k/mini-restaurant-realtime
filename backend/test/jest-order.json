@@ -1,0 +1,12 @@
+{
+  "rootDir": "..",
+  "testRegex": "order.spec.ts$",
+  "extensionsToTreatAsEsm": [".ts"],
+  "transform": {
+    "^.+\\.ts$": ["ts-jest", {
+      "useESM": true,
+      "tsconfig": { "rootDir": ".", "module": "ESNext", "moduleResolution": "bundler" }
+    }]
+  },
+  "testEnvironment": "node"
+}
