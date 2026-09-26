@@ -129,13 +129,14 @@ export class OrderService extends BaseCrudService<
   async create(dto: CreateOrderRequestDto): Promise<OrderResponseDto> {
     try {
       return await this.repository.manager.transaction(async (manager) => {
+        const status = dto.status ?? OrderStatus.PENDING;
         await this.validateRelations(manager, dto);
         const entity = await manager.save(
           OrderEntity,
           manager.create(OrderEntity, {
             orderNumber: dto.orderNumber,
             tableId: dto.tableId,
-            status: dto.status,
+            status: status === OrderStatus.PENDING ? OrderStatus.DRAFT : status,
             discount: dto.discount ?? '0.00',
             note: dto.note ?? null,
             createdByUserId: dto.createdByUserId,
@@ -147,15 +148,21 @@ export class OrderService extends BaseCrudService<
           { id: dto.tableId },
           { status: RestaurantTableStatuseEnum.OCCUPIED },
         );
+        if (status === OrderStatus.PENDING) {
+          return this.submitToKitchen(entity.id, manager);
+        }
         return OrderMapper.toDto(await this.load(manager, entity.id));
       });
     } catch (error) {
       handleError(error);
     }
   }
-  async submitToKitchen(id: number): Promise<OrderResponseDto> {
+  async submitToKitchen(
+    id: number,
+    transactionManager?: EntityManager,
+  ): Promise<OrderResponseDto> {
     try {
-      return await this.repository.manager.transaction(async (manager) => {
+      const submit = async (manager: EntityManager) => {
         const entity = await manager.findOne(OrderEntity, {
           where: { id },
           lock: { mode: 'pessimistic_write' },
@@ -174,7 +181,10 @@ export class OrderService extends BaseCrudService<
         entity.status = OrderStatus.PENDING;
         await manager.save(OrderEntity, entity);
         return OrderMapper.toDto(await this.load(manager, id));
-      });
+      };
+      return await (transactionManager
+        ? submit(transactionManager)
+        : this.repository.manager.transaction(submit));
     } catch (error) {
       handleError(error);
     }

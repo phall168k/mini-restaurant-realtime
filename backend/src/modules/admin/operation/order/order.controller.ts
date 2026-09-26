@@ -51,7 +51,8 @@ export class OrderController {
   @Roles(RoleEnum.RECEPTIONIST)
   @ApiOperation({
     summary: 'Create an order',
-    description: 'The authenticated user is recorded as the creator.',
+    description:
+      'The authenticated user is recorded as the creator. PENDING orders run the kitchen submission workflow in the creation transaction; other statuses are saved without submission.',
   })
   @ApiBody({ type: CreateOrderRequestDto })
   @ApiCreatedResponse({ type: OrderResponseDto })
