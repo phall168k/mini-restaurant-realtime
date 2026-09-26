@@ -19,6 +19,7 @@ interface MenuItem {
 }
 
 const groups = computed<{ label: string; items: MenuItem[] }[]>(() => [
+  { label: t('navigation.operation'), items: [{ label: t('order.title'), to: '/admin/operation/order', icon: 'hugeicons:shopping-basket-01', roles: [RoleEnum.RECEPTIONIST, RoleEnum.COOKER, RoleEnum.CASHIER], enabled: true }] },
   {
     label: t('navigation.workspace'),
     items: [
