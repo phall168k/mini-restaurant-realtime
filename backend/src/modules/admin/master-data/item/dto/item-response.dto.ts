@@ -22,12 +22,6 @@ export class ItemResponseDto extends ItemSelectOptionResponseDto {
     })
     unitPrice: string;
 
-    @ApiProperty({ 
-        type: String, 
-        example: '0.00' 
-    })
-    discount: string;
-
     @ApiProperty()
     status: boolean;
 

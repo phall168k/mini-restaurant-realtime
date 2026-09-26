@@ -17,7 +17,6 @@ export class ItemMapper {
             category: entity.category ? await CategoryMapper.toDtoSelectOption(entity.category) : null,
             description: entity.description ?? null,
             unitPrice: entity.unitPrice,
-            discount: entity.discount,
             status: entity.status,
             createdByUserId: entity.createdByUserId,
             createdByUser: entity.createdByUser ? await UserMapper.toDto(entity.createdByUser) : null,
@@ -31,6 +30,7 @@ export class ItemMapper {
         return Object.assign(new ItemSelectOptionResponseDto(), {
             id: entity.id, categoryId: entity.categoryId, code: entity.code,
             nameEn: entity.nameEn, nameKh: entity.nameKh,
+            discount: entity.discount,
             thumbnail: entity.thumbnail ?? null,
         });
     }

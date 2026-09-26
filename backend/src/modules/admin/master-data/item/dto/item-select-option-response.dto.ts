@@ -17,6 +17,9 @@ export class ItemSelectOptionResponseDto {
     @ApiProperty()
     nameKh: string;
 
+    @ApiProperty({ type: String, example: '0.00' })
+    discount: string;
+
     @ApiProperty({ type: AttachmentDto, nullable: true })
     thumbnail: AttachmentDto | null;
 }
