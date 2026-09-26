@@ -1,4 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { AttachmentDto } from '../../../../../libs/dtos/attachment.dto';
 
 export class ItemSelectOptionResponseDto {
     @ApiProperty()
@@ -15,4 +16,7 @@ export class ItemSelectOptionResponseDto {
 
     @ApiProperty()
     nameKh: string;
+
+    @ApiProperty({ type: AttachmentDto, nullable: true })
+    thumbnail: AttachmentDto | null;
 }

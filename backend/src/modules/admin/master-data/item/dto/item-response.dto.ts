@@ -1,7 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { CategorySelectOptionResponseDto } from '../../category/dto/category-select-option-response.dto';
 import { ItemSelectOptionResponseDto } from './item-select-option-response.dto';
-import { AttachmentDto } from '../../../../../libs/dtos/attachment.dto';
 import { UserResponseDto } from '../../../system/user/dto/user-response.dto';
 
 export class ItemResponseDto extends ItemSelectOptionResponseDto {
@@ -28,12 +27,6 @@ export class ItemResponseDto extends ItemSelectOptionResponseDto {
         example: '0.00' 
     })
     discount: string;
-
-    @ApiProperty({ 
-        type: AttachmentDto, 
-        nullable: true 
-    })
-    thumbnail: AttachmentDto | null;
 
     @ApiProperty()
     status: boolean;
