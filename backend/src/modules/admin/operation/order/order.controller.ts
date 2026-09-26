@@ -114,6 +114,24 @@ export class OrderController {
     return this.orderService.findOne(id);
   }
 
+  @Post(':id/submit')
+  @Roles(RoleEnum.RECEPTIONIST)
+  @ApiOperation({
+    summary: 'Submit a draft order to the kitchen',
+    description:
+      'Changes DRAFT to PENDING. Existing order items and prices are preserved.',
+  })
+  @ApiParam({ name: 'id', type: Number, description: 'Order ID' })
+  @ApiCreatedResponse({ type: OrderResponseDto })
+  @ApiNotFoundResponse({ description: 'Order not found' })
+  @ApiConflictResponse({ description: 'Only draft orders can be submitted' })
+  @ApiBadRequestResponse({ description: 'Invalid ID or empty order' })
+  public submitToKitchen(
+    @Param('id', ParseIntPipe) id: number,
+  ): Promise<OrderResponseDto> {
+    return this.orderService.submitToKitchen(id);
+  }
+
   @Put(':id')
   @Roles(RoleEnum.RECEPTIONIST)
   @ApiOperation({

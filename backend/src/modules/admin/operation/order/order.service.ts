@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -152,6 +153,33 @@ export class OrderService extends BaseCrudService<
       handleError(error);
     }
   }
+  async submitToKitchen(id: number): Promise<OrderResponseDto> {
+    try {
+      return await this.repository.manager.transaction(async (manager) => {
+        const entity = await manager.findOne(OrderEntity, {
+          where: { id },
+          lock: { mode: 'pessimistic_write' },
+        });
+        if (!entity) throw new NotFoundException('Order not found');
+        if (entity.status !== OrderStatus.DRAFT) {
+          throw new ConflictException(
+            'Only draft orders can be submitted to the kitchen',
+          );
+        }
+        if (!(await manager.countBy(OrderItemEntity, { orderId: id }))) {
+          throw new BadRequestException(
+            'An order must contain at least one item',
+          );
+        }
+        entity.status = OrderStatus.PENDING;
+        await manager.save(OrderEntity, entity);
+        return OrderMapper.toDto(await this.load(manager, id));
+      });
+    } catch (error) {
+      handleError(error);
+    }
+  }
+
   async update(
     id: number,
     dto: UpdateOrderRequestDto,
