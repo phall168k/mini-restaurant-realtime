@@ -20,4 +20,9 @@ export const roles: RoleSeed[] = [
         description: 'Cooker',
         status: true,
     },
+    {
+        name: 'Receiptionist',
+        description: 'Receiptionist',
+        status: true,
+    },
 ];
