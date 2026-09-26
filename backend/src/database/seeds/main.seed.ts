@@ -9,6 +9,8 @@ import { CategoryEntity } from '../../modules/admin/master-data/category/entitie
 import { categories } from './category.seed';
 import { ItemEntity } from '../../modules/admin/master-data/item/entities/item.entity';
 import { items } from './items.seed';
+import { RestaurantTableEntity } from '../../modules/admin/master-data/restaurant-table/entities/restaurant-table.entity';
+import { restaurantTables } from './restaurant-tables.seed';
 
 export default class MainSeeder implements Seeder {
     public async run(database: DataSource): Promise<void> {
@@ -79,6 +81,7 @@ export default class MainSeeder implements Seeder {
 
             await manager.save(CategoryEntity, categories);
             await manager.save(ItemEntity, items);
+            await manager.save(RestaurantTableEntity, restaurantTables);
         });
     }
 }
