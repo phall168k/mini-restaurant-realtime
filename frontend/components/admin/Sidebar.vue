@@ -19,7 +19,7 @@ interface MenuItem {
 }
 
 const groups = computed<{ label: string; items: MenuItem[] }[]>(() => [
-  { label: t('navigation.operation'), items: [{ label: t('order.title'), to: '/admin/operation/order', icon: 'hugeicons:shopping-basket-01', roles: [RoleEnum.RECEPTIONIST, RoleEnum.COOKER, RoleEnum.CASHIER], enabled: true }] },
+  { label: t('navigation.operation'), items: [{ label: t('order.title'), to: '/admin/operation/order', icon: 'hugeicons:shopping-basket-01', roles: [RoleEnum.RECEPTIONIST, RoleEnum.COOKER, RoleEnum.CASHIER], enabled: true }, { label: t('kitchen.title'), to: '/admin/operation/kitchen', icon: 'hugeicons:chef-hat', roles: [RoleEnum.COOKER, RoleEnum.RECEPTIONIST], enabled: true }] },
   {
     label: t('navigation.workspace'),
     items: [
