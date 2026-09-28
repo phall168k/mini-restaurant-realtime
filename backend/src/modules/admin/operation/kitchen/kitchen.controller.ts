@@ -1,3 +1,5 @@
+import { OrderItemStatus } from '../../../../libs/enums/order-item-status.enum';
+import { OrderResponseDto } from '../order/dto/order-response.dto';
 import {
   Body,
   Controller,
@@ -7,9 +9,12 @@ import {
   ParseIntPipe,
   Post,
   Put,
+  Patch,
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
+  ApiConflictResponse,
+  ApiParam,
   ApiBody,
   ApiCreatedResponse,
   ApiNotFoundResponse,
@@ -50,7 +55,7 @@ export class KitchenController {
   })
   @ApiBody({ type: CreateKitchenRequestDto })
   @ApiCreatedResponse({ type: KitchenResponseDto })
-  @ApiNotFoundResponse({ description: 'Order item or user not found' })
+  @ApiNotFoundResponse({ description: 'Order or user not found' })
   @ApiUnprocessableEntityResponse({ description: 'Invalid kitchen data' })
   create(
     @Body() dto: CreateKitchenRequestDto,
@@ -68,7 +73,7 @@ export class KitchenController {
   @ApiPaginatedResponse(KitchenResponseDto)
   @ApiQuery({ name: 'search', type: String, required: false })
   @ApiQuery({ name: 'status', enum: KitchenStatus, required: false })
-  @ApiQuery({ name: 'orderItemId', type: Number, required: false })
+  @ApiQuery({ name: 'orderId', type: Number, required: false })
   @ApiQuery({ name: 'performedById', type: Number, required: false })
   findAll(
     @PaginationParams() pagination: PaginationRequest,
@@ -95,7 +100,7 @@ export class KitchenController {
   @ApiBody({ type: UpdateKitchenRequestDto })
   @ApiOkResponse({ type: KitchenResponseDto })
   @ApiNotFoundResponse({
-    description: 'Kitchen record, order item, or user not found',
+    description: 'Kitchen record, order, or user not found',
   })
   update(
     @Param('id', ParseIntPipe) id: number,
@@ -103,6 +108,52 @@ export class KitchenController {
     @CurrentUser() user: UserResponseDto,
   ): Promise<KitchenResponseDto> {
     return this.service.update(id, dto, user.id);
+  }
+
+  @Patch('orders/:orderId/items/:itemId/start')
+  @Roles(RoleEnum.COOKER)
+  @ApiOperation({ summary: 'Set an order item to PREPARING' })
+  @ApiParam({ name: 'orderId', type: Number })
+  @ApiParam({ name: 'itemId', type: Number })
+  @ApiOkResponse({ type: OrderResponseDto })
+  @ApiNotFoundResponse({ description: 'Order, item, or user not found' })
+  @ApiConflictResponse({ description: 'Invalid transition or no active kitchen record' })
+  startItem(
+    @Param('orderId', ParseIntPipe) orderId: number,
+    @Param('itemId', ParseIntPipe) itemId: number,
+    @CurrentUser() user: UserResponseDto,
+  ): Promise<OrderResponseDto> {
+    return this.service.updateItemStatus(orderId, itemId, OrderItemStatus.PREPARING, user.id);
+  }
+
+  @Patch('orders/:orderId/items/:itemId/ready')
+  @Roles(RoleEnum.COOKER)
+  @ApiOperation({ summary: 'Set an order item to READY' })
+  @ApiParam({ name: 'orderId', type: Number })
+  @ApiParam({ name: 'itemId', type: Number })
+  @ApiOkResponse({ type: OrderResponseDto })
+  @ApiNotFoundResponse({ description: 'Order, item, or user not found' })
+  @ApiConflictResponse({ description: 'Invalid transition or no active kitchen record' })
+  readyItem(
+    @Param('orderId', ParseIntPipe) orderId: number,
+    @Param('itemId', ParseIntPipe) itemId: number,
+    @CurrentUser() user: UserResponseDto,
+  ): Promise<OrderResponseDto> {
+    return this.service.updateItemStatus(orderId, itemId, OrderItemStatus.READY, user.id);
+  }
+
+  @Patch('orders/:orderId/ready')
+  @Roles(RoleEnum.COOKER)
+  @ApiOperation({ summary: 'Mark all pending and preparing items of an order ready' })
+  @ApiParam({ name: 'orderId', type: Number })
+  @ApiOkResponse({ type: OrderResponseDto })
+  @ApiNotFoundResponse({ description: 'Order or user not found' })
+  @ApiConflictResponse({ description: 'Order has no active kitchen record or cannot be marked ready' })
+  makeAllReady(
+    @Param('orderId', ParseIntPipe) orderId: number,
+    @CurrentUser() user: UserResponseDto,
+  ): Promise<OrderResponseDto> {
+    return this.service.makeAllReady(orderId, user.id);
   }
 
   @Delete(':id')

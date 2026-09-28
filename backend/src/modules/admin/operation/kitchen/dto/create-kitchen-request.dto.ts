@@ -16,12 +16,12 @@ import { KitchenStatus } from '../../../../../libs/enums/kitchen-status.enum';
 
 export class CreateKitchenRequestDto {
   @ApiProperty({
-    description: 'ID of the related order item',
+    description: 'ID of the related order',
   })
   @IsInt()
   @Min(1)
   @Max(2147483647)
-  orderItemId: number;
+  orderId: number;
 
   @ApiPropertyOptional({
     enum: KitchenStatus,

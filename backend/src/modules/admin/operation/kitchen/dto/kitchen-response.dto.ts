@@ -1,19 +1,19 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { KitchenStatus } from '../../../../../libs/enums/kitchen-status.enum';
-import { OrderItemResponseDto } from '../../order/dto/order-item-response.dto';
+import { OrderResponseDto } from '../../order/dto/order-response.dto';
 import { UserSelectOptionResponseDto } from '../../../system/user/dto/user-select-option-response.dto';
 export class KitchenResponseDto {
   @ApiProperty()
   id: number;
 
   @ApiProperty()
-  orderItemId: number;
+  orderId: number;
 
   @ApiProperty({
-    type: OrderItemResponseDto,
+    type: OrderResponseDto,
     nullable: true,
   })
-  orderItem: OrderItemResponseDto | null;
+  order: OrderResponseDto | null;
 
   @ApiProperty()
   performedById: number;

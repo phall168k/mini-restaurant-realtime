@@ -8,30 +8,30 @@ import {
 } from 'typeorm';
 import { BaseEntity } from '../../../../../database/entities/base.entity';
 import { KitchenStatus } from '../../../../../libs/enums/kitchen-status.enum';
-import { OrderItemEntity } from '../../order/entities/order-item.entity';
+import { OrderEntity } from '../../order/entities/order.entity';
 import { UserEntity } from '../../../system/user/entities/user.entity';
 
 @Entity({
   schema: 'admin',
   name: 'kitchens',
 })
-@Index('IDX_kitchens_order_item_id', ['orderItemId'])
+@Index('IDX_kitchens_order_id', ['orderId'])
 @Index('IDX_kitchens_performed_by_id', ['performedById'])
 export class KitchenEntity extends BaseEntity {
   @PrimaryGeneratedColumn() id: number;
   @Column({
-    name: 'order_item_id',
+    name: 'order_id',
     type: 'integer',
   })
-  orderItemId: number;
+  orderId: number;
 
-  @ManyToOne(() => OrderItemEntity, {
+  @ManyToOne(() => OrderEntity, {
     nullable: false,
     onDelete: 'RESTRICT',
     onUpdate: 'CASCADE',
   })
-  @JoinColumn({ name: 'order_item_id' })
-  orderItem: OrderItemEntity;
+  @JoinColumn({ name: 'order_id' })
+  order: OrderEntity;
 
   @Column({
     name: 'performed_by_id',
