@@ -27,4 +27,14 @@ export class RealtimeService {
 
         return this.server;
     }
+
+    public emitToRole<T>( 
+        roleName: string, 
+        event: RealtimeEventType, 
+        payload: T, 
+    ) { 
+        this.getServer() 
+        .to(roleName) 
+        .emit(event, payload); 
+    }
 }
