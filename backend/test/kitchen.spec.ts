@@ -10,7 +10,7 @@ import { OrderItemStatus } from '../src/libs/enums/order-item-status.enum';
 function setup() {
   const entity = {
     id: 1, orderItemId: 42, performedById: 7, status: KitchenStatus.PENDING,
-    orderItem: { id: 42, orderId: 10, itemId: 3, status: OrderItemStatus.PENDING },
+    orderItem: { id: 42, orderId: 10, itemId: 3, quantity: 4, status: OrderItemStatus.PENDING },
   };
   const repository = {
     create: jest.fn((dto: object) => dto),
@@ -35,7 +35,7 @@ describe('Kitchen order-item relationship', () => {
     expect(items.findOneBy).toHaveBeenCalledWith({ id: 42 });
     expect(repository.create).toHaveBeenCalledWith(expect.objectContaining({ orderItemId: 42 }));
     expect(result.orderItemId).toBe(42);
-    expect(result.orderItem).toMatchObject({ id: 42, orderId: 10 });
+    expect(result.orderItem).toMatchObject({ id: 42, orderId: 10, quantity: 4 });
     expect(result).not.toHaveProperty('orderId');
     expect(result).not.toHaveProperty('order');
   });

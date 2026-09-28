@@ -16,6 +16,9 @@ export class OrderItemResponseDto {
     @ApiProperty()
     itemId: number;
 
+    @ApiProperty({ minimum: 1, example: 2 })
+    quantity: number;
+
     @ApiProperty()
     item: ItemResponseDto;
 

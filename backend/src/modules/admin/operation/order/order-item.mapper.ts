@@ -10,6 +10,7 @@ export class OrderItemMapper {
         dto.id = entity.id;
         dto.orderId = entity.orderId;
         dto.itemId = entity.itemId;
+        dto.quantity = entity.quantity;
         dto.status = entity.status;
         dto.createdAt = entity.createdAt;
 
