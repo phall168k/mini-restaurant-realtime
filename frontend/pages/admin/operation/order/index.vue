@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import OrderPos from '~/components/admin/OrderPos.vue'
+import FoodThumbnail from '~/components/admin/FoodThumbnail.vue'
 import { ElMessageBox } from 'element-plus'
-import { Plus, Search } from '@element-plus/icons-vue'
+import { Plus, Search, Refresh, EditPen, Delete } from '@element-plus/icons-vue'
 import en from 'element-plus/es/locale/lang/en'
 import km from 'element-plus/es/locale/lang/km'
 import type { IUser } from '~/types/user'
@@ -45,6 +46,12 @@ const statusFilter = ref('')
 const selectedOrder = ref<IOrder>()
 function itemLabel(item: IOrderItemOption) {
   return `${item.code} — ${locale.value === 'km' ? item.nameKh : item.nameEn}`
+}
+function statusType(status: string): 'info' | 'warning' | 'success' | 'danger' {
+  if (status === 'CANCELED') return 'danger'
+  if (['READY', 'SERVED', 'PAID'].includes(status)) return 'success'
+  if (['PENDING', 'PREPARING'].includes(status)) return 'warning'
+  return 'info'
 }
 function closeForm() {
   if (!saving.value) dialogVisible.value = false
@@ -233,14 +240,14 @@ onBeforeUnmount(() => {
 <template>
   <el-config-provider :locale="elementLocale">
     <section
-      class="rounded-xl border border-slate-200 bg-white p-4 md:p-6"
+      class="order-workspace"
       :aria-label="t('order.title')"
     >
         <header
-            class="mb-5 flex flex-wrap items-center justify-between gap-4 border-b border-slate-100 pb-5"
+            class="mb-6 flex flex-wrap items-center justify-between gap-4"
         >
             <div>
-                <h1 class="text-xl font-semibold text-slate-900">
+                <h1 class="text-2xl font-semibold tracking-tight text-slate-900">
                     {{ t('order.title') }}
                 </h1>
                 <p class="mt-1 text-sm text-slate-500">{{ t('order.subtitle') }}</p>
@@ -248,48 +255,32 @@ onBeforeUnmount(() => {
             <el-button
                 type="primary"
                 :icon="Plus"
+                size="large"
+                class="order-create-button"
                 :disabled="saving || deletingId !== null || submittingId !== null"
                 v-if="canManageOrders"
                 @click="openForm()"
                 >{{ t('order.create') }}</el-button
             >
         </header>
-        <form
-            class="mb-5 flex flex-wrap gap-2"
-            role="search"
-            @submit.prevent="searchOrders"
-        >
-            <el-input
-                v-model="search"
-                :prefix-icon="Search"
-                :placeholder="t('order.search_placeholder')"
-                :aria-label="t('order.search_placeholder')"
-                clearable
-                class="!w-full sm:!w-80"
-                @clear="searchOrders"
-            />
-            <el-select
-                v-model="statusFilter"
-                clearable
-                :placeholder="t('order.all_statuses')"
-                :aria-label="t('order.status')"
-                class="!w-48"
-                @change="searchOrders"
-            >
-            <el-option
-                v-for="status in ORDER_STATUSES"
-                :key="status"
-                :value="status"
-                :label="t(`order.statuses.${status}`)"
-            />
-            </el-select>
-            <el-button 
-                native-type="submit" 
-                :icon="Search"
-            >
-                {{ t('order.search') }}
-            </el-button>
-        </form>
+        <div class="order-list-surface">
+        <div class="order-toolbar">
+            <div class="flex min-w-0 flex-1 items-center gap-3">
+                <h2 class="text-sm font-semibold text-slate-800">{{ t('order.title') }}</h2>
+                <span class="order-count">{{ total }}</span>
+            </div>
+            <form class="flex w-full flex-wrap items-center gap-2 md:w-auto" role="search" @submit.prevent="searchOrders">
+                <el-input v-model="search" :prefix-icon="Search" :placeholder="t('order.search_placeholder')" :aria-label="t('order.search_placeholder')" clearable size="large" class="!w-full sm:!w-80" @clear="searchOrders" />
+                <el-button native-type="submit" size="large">{{ t('order.search') }}</el-button>
+                <el-button :icon="Refresh" size="large" :aria-label="t('order.retry')" :loading="loading" @click="loadOrders" />
+            </form>
+        </div>
+        <div class="order-status-filters" role="group" :aria-label="t('order.status')">
+            <button type="button" :class="['order-filter', { 'is-active': !statusFilter }]" :aria-pressed="!statusFilter" @click="statusFilter = ''; searchOrders()">{{ t('order.all_statuses') }}</button>
+            <button v-for="status in ORDER_STATUSES" :key="status" type="button" :class="['order-filter', { 'is-active': statusFilter === status }]" :aria-pressed="statusFilter === status" @click="statusFilter = status; searchOrders()">
+                <span :class="['order-status-dot', `is-${status.toLowerCase()}`]" aria-hidden="true" />{{ t(`order.statuses.${status}`) }}
+            </button>
+        </div>
         <el-alert
             v-if="listError"
             :title="listError"
@@ -305,153 +296,64 @@ onBeforeUnmount(() => {
             v-loading="loading"
             :data="orders"
             row-key="id"
-            :empty-text="t('order.empty')"
+            max-height="70vh"
+            :empty-text="listError ? t('order.load_error') : t('order.empty')"
+            class="order-list-table"
         >
-            <el-table-column type="expand">
+            <el-table-column :label="t('order.number')" min-width="200">
                 <template #default="{ row }">
-                    <div class="p-4">
-                        <p class="mb-3 text-sm">
-                            {{ t('order.note') }}: {{ row.note || '—' }}
-                        </p>
-                        <el-table :data="row.items" row-key="id">
-                            <el-table-column 
-                                :label="t('order.item')" 
-                                min-width="200"
-                            >
-                                <template #default="{ row: line }">
-                                    {{ line.item ? itemLabel(line.item) : `#${line.itemId}` }}
-                                </template>
-                            </el-table-column>
-                            <el-table-column
-                                prop="quantity"
-                                :label="t('order.quantity')"
-                                width="110"
-                            />
-                            <el-table-column
-                                prop="unitPrice"
-                                :label="t('order.unit_price')"
-                                width="130"
-                            />
-                            <el-table-column
-                                prop="discount"
-                                :label="t('order.discount')"
-                                width="130"
-                            />
-                            <el-table-column 
-                                :label="t('order.status')" 
-                                width="150"
-                            >
-                                <template #default="{ row: line }">
-                                    {{ t(`order.statuses.${line.status}`) }}
-                                </template>
-                            </el-table-column>
-                            <el-table-column
-                                prop="note"
-                                :label="t('order.note')"
-                                min-width="180"
-                            />
-                        </el-table>
+                    <div class="text-sm font-semibold tracking-tight text-slate-900">{{ row.orderNumber }}</div>
+                    <el-tag type="success" size="large" class="mt-3">{{ row.table?.name || `#${row.tableId}` }}</el-tag>
+                    <div class="mt-2 text-xs text-slate-500">{{ formatDate(row.createdAt) }}</div>
+                    <div class="mt-1 text-xs text-slate-500">{{ t('order.created_by') }}: {{ row.createdByUser?.username || '—' }}</div>
+                </template>
+            </el-table-column>
+            <el-table-column :label="t('order.items')" min-width="360">
+                <template #default="{ row }">
+                    <div v-if="!row.items?.length" class="py-3 text-slate-400">—</div>
+                    <div v-for="line in row.items" :key="line.id" class="flex items-start gap-3 border-b border-slate-100 py-3 last:border-0">
+                        <div class="h-12 w-12 shrink-0 overflow-hidden rounded-xl bg-slate-100 text-slate-400">
+                            <FoodThumbnail :attachment="line.item?.thumbnail" :alt="line.item ? itemLabel(line.item) : `#${line.itemId}`" />
+                        </div>
+                        <div class="min-w-0 flex-1">
+                            <div class="text-sm font-medium text-slate-900">{{ line.item ? (locale === 'km' ? line.item.nameKh : line.item.nameEn) : `#${line.itemId}` }}</div>
+                            <div class="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-slate-500">
+                                <span>{{ t('order.unit_price') }}: {{ line.unitPrice }}</span>
+                                <span v-if="Number(line.discount) > 0">{{ t('order.discount') }}: {{ line.discount }}</span>
+                            </div>
+                            <p v-if="line.note" class="mt-2 whitespace-pre-wrap break-words text-xs text-slate-600">{{ t('order.note') }}: {{ line.note }}</p>
+                        </div>
+                        <div class="flex shrink-0 flex-col items-end gap-2">
+                            <span class="rounded-lg bg-slate-100 px-2 py-0.5 text-sm font-semibold tabular-nums text-slate-700" :aria-label="`${t('order.quantity')}: ${line.quantity}`">× {{ line.quantity }}</span>
+                            <el-tag size="small" round effect="light" :type="statusType(line.status)">{{ t(`order.statuses.${line.status}`) }}</el-tag>
+                        </div>
                     </div>
                 </template>
             </el-table-column>
-            <el-table-column
-                prop="orderNumber"
-                :label="t('order.number')"
-                min-width="170"
-                show-overflow-tooltip
-            />
-            <el-table-column 
-                :label="t('order.table')" 
-                min-width="180"
-            >
+            <el-table-column :label="t('order.status')" width="140">
+                <template #default="{ row }"><el-tag round effect="light" :type="statusType(row.status)">{{ t(`order.statuses.${row.status}`) }}</el-tag></template>
+            </el-table-column>
+            <el-table-column :label="t('order.note')" min-width="180">
                 <template #default="{ row }">
-                    {{
-                        row.table
-                        ? `${row.table.code} — ${row.table.name}`
-                        : `#${row.tableId}`
-                    }}
+                    <p class="whitespace-pre-wrap break-words text-slate-600">{{ row.note || '—' }}</p>
+                    <p v-if="Number(row.discount) > 0" class="mt-3 text-xs text-slate-500">{{ t('order.discount') }}: {{ row.discount }}</p>
                 </template>
             </el-table-column>
-            <el-table-column 
-                :label="t('order.status')" 
-                width="150"
-            >
+            <el-table-column v-if="canManageOrders" :label="t('order.actions')" width="190" fixed="right">
                 <template #default="{ row }">
-                    <el-tag>{{ t(`order.statuses.${row.status}`) }}</el-tag>
-                </template>
-            </el-table-column>
-            <el-table-column
-                prop="discount"
-                :label="t('order.discount')"
-                width="130"
-            />
-            <el-table-column 
-                :label="t('order.items')" 
-                width="100"
-            >
-                <template #default="{ row }">
-                    {{ row.items.length }}
-                </template>
-            </el-table-column>
-            <el-table-column 
-                :label="t('order.created_by')" 
-                min-width="150"
-            >
-                <template #default="{ row }">
-                    {{ row.createdByUser?.username || '—' }}
-                </template>
-            </el-table-column>
-            <el-table-column 
-                :label="t('order.created_at')" 
-                min-width="190"
-            >
-                <template #default="{ row }">
-                    {{ formatDate(row.createdAt) }}
-                </template>
-            </el-table-column>
-            <el-table-column
-                v-if="canManageOrders"
-                :label="t('order.actions')"
-                width="310"
-                fixed="right"
-            >
-                <template #default="{ row }">
-                    <el-tag
-                        v-if="row.status === 'DRAFT'"
-                        type="primary"
-                        size="large"
-                        class="cursor-pointer mr-2"
-                        :loading="submittingId === row.id"
-                        :disabled="saving || deletingId !== null || submittingId !== null"
-                        @click="submitToKitchen(row)"
-                    >
-                    <Icon name="twemoji:cook"/> {{ t('order.submit_kitchen') }}
-                    </el-tag>
-                    <el-tag
-                        link
-                        type="success"
-                        size="large"
-                        class="cursor-pointer mr-2"
-                        :disabled="saving || deletingId !== null || submittingId !== null"
-                        @click="openForm(row)"
-                    >
-                        <Icon name="akar-icons:edit"/>
-                    </el-tag>
-                    <el-tag
-                        link
-                        type="danger"
-                        size="large"
-                        class="cursor-pointer"
-                        :loading="deletingId === row.id"
-                        :disabled="saving || deletingId !== null || submittingId !== null"
-                        @click="deleteOrder(row)"
-                    >
-                        <Icon name="mi:delete"/>
-                    </el-tag>
+                    <div class="flex flex-col gap-2 py-2">
+                        <el-button v-if="row.status === 'DRAFT'" type="primary" class="!ml-0 !w-full" :loading="submittingId === row.id" :disabled="saving || deletingId !== null || submittingId !== null" @click="submitToKitchen(row)">
+                            {{ t('order.submit_kitchen') }}
+                        </el-button>
+                        <div class="flex items-center justify-end gap-2">
+                            <el-button :icon="EditPen" :aria-label="`${t('order.edit')}: ${row.orderNumber}`" class="!ml-0" :disabled="saving || deletingId !== null || submittingId !== null" @click="openForm(row)">{{ t('order.edit') }}</el-button>
+                            <el-button :icon="Delete" :aria-label="`${t('order.delete')}: ${row.orderNumber}`" plain type="danger" class="!ml-0" :loading="deletingId === row.id" :disabled="saving || deletingId !== null || submittingId !== null" @click="deleteOrder(row)" />
+                        </div>
+                    </div>
                 </template>
             </el-table-column>
         </el-table>
-        <div class="mt-5 overflow-x-auto">
+        <div class="overflow-x-auto border-t border-slate-100 px-5 py-4">
             <el-pagination
                 :current-page="page"
                 :page-size="pageSize"
@@ -462,6 +364,7 @@ onBeforeUnmount(() => {
                 @current-change="changePage"
                 @size-change="changePageSize"
             />
+        </div>
         </div>
         <el-dialog
             v-model="dialogVisible"
@@ -486,6 +389,9 @@ onBeforeUnmount(() => {
 </template>
 
 <style>
+    .order-list-table .el-table__cell {
+        vertical-align: top;
+    }
     .order-pos-dialog.el-dialog {
         padding: 0;
     }
@@ -495,4 +401,30 @@ onBeforeUnmount(() => {
     .order-pos-dialog > .el-dialog__body {
         padding: 0;
     }
+</style>
+
+<style scoped>
+.order-workspace { padding: 8px; }
+.order-list-surface { overflow: hidden; border: 1px solid #e2e8f0; border-radius: 18px; background: #fff; box-shadow: 0 4px 24px -16px rgb(15 23 42 / 18%); }
+.order-toolbar { display: flex; align-items: center; flex-wrap: wrap; gap: 16px; padding: 20px; }
+.order-count { border-radius: 8px; background: #f1f5f9; padding: 3px 9px; font-size: 12px; font-weight: 600; color: #475569; font-variant-numeric: tabular-nums; }
+.order-create-button { border-radius: 10px; box-shadow: 0 3px 8px rgb(59 130 246 / 14%); }
+.order-status-filters { display: flex; gap: 6px; overflow-x: auto; padding: 0 20px 18px; }
+.order-filter { display: inline-flex; align-items: center; gap: 7px; white-space: nowrap; border-radius: 9px; padding: 8px 12px; font-size: 13px; font-weight: 500; color: #64748b; transition: background .15s, color .15s; }
+.order-filter:hover { background: #f1f5f9; color: #0f172a; }
+.order-filter.is-active { background: #0f172a; color: #fff; }
+.order-filter:focus-visible { outline: 2px solid #3b82f6; outline-offset: 2px; }
+.order-status-dot { width: 6px; height: 6px; border-radius: 50%; background: #94a3b8; }
+.order-status-dot.is-pending { background: #f59e0b; }
+.order-status-dot.is-preparing { background: #3b82f6; }
+.order-status-dot.is-ready, .order-status-dot.is-served, .order-status-dot.is-paid { background: #22c55e; }
+.order-status-dot.is-canceled { background: #f87171; }
+.order-table-badge { display: inline-block; border: 1px solid #e2e8f0; border-radius: 7px; padding: 3px 8px; font-size: 12px; font-weight: 500; color: #475569; background: #f8fafc; }
+.order-list-table { --el-table-header-bg-color: #f8fafc; --el-table-row-hover-bg-color: #fafcff; --el-table-border-color: #edf1f5; }
+.order-list-table :deep(th.el-table__cell) { padding: 12px 0; color: #64748b; font-size: 12px; font-weight: 600; }
+.order-list-table :deep(td.el-table__cell) { padding: 18px 0; }
+.order-list-table :deep(.cell) { padding-left: 18px; padding-right: 18px; }
+.order-list-table :deep(.el-tag) { border-color: transparent; font-weight: 500; }
+.order-toolbar :deep(.el-input__wrapper), .order-toolbar :deep(.el-button) { border-radius: 9px; }
+@media (max-width: 640px) { .order-workspace { padding: 0; } .order-toolbar { padding: 16px; } .order-status-filters { padding-left: 16px; padding-right: 16px; } }
 </style>
