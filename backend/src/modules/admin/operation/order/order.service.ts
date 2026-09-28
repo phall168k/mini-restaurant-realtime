@@ -2,6 +2,7 @@ import {
   BadRequestException,
   ConflictException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -22,12 +23,16 @@ import { OrderMapper } from './order.mapper';
 import { OrderItemStatus } from '../../../../libs/enums/order-item-status.enum';
 import { OrderItemMapper } from './order-item.mapper';
 import { OrderItemResponseDto } from './dto/order-item-response.dto';
+import { RealtimeService } from '../../../realtime/realtime.service';
+import { RoleEnum } from '../../../../libs/enums/role.enum';
+import { RealtimeEvent } from '../../../../libs/constants/realtime-event.constant';
 
 @Injectable()
 export class OrderService extends BaseCrudService<
   OrderEntity,
   OrderResponseDto
 > {
+  private readonly realtimeLogger = new Logger(OrderService.name);
   protected queryName = 'orders';
   protected SEARCH_FIELDS = ['orderNumber', 'note', 'table.name', 'table.code'];
   protected FILTER_FIELDS = ['orderNumber'];
@@ -36,6 +41,7 @@ export class OrderService extends BaseCrudService<
     private readonly repository: Repository<OrderEntity>,
     @InjectRepository(OrderItemEntity)
     private readonly itemOrderRepository: Repository<OrderItemEntity>,
+    private readonly realtimeService: RealtimeService,
   ) {
     super();
   }
@@ -133,7 +139,7 @@ export class OrderService extends BaseCrudService<
   }
   async create(dto: CreateOrderRequestDto): Promise<OrderResponseDto> {
     try {
-      return await this.repository.manager.transaction(async (manager) => {
+      const order = await this.repository.manager.transaction(async (manager) => {
         const status = dto.status ?? OrderStatus.PENDING;
         await this.validateRelations(manager, dto);
         const entity = await manager.save(
@@ -158,6 +164,10 @@ export class OrderService extends BaseCrudService<
         }
         return OrderMapper.toDto(await this.load(manager, entity.id));
       });
+      if ((dto.status ?? OrderStatus.PENDING) === OrderStatus.PENDING) {
+        this.notifyKitchen(order);
+      }
+      return order;
     } catch (error) {
       handleError(error);
     }
@@ -215,11 +225,26 @@ export class OrderService extends BaseCrudService<
         await manager.save(OrderEntity, entity);
         return OrderMapper.toDto(await this.load(manager, id));
       };
-      return await (transactionManager
-        ? submit(transactionManager)
-        : this.repository.manager.transaction(submit));
+      // The caller owns commit and notification when using an existing transaction.
+      if (transactionManager) return await submit(transactionManager);
+      const order = await this.repository.manager.transaction(submit);
+      this.notifyKitchen(order);
+      return order;
     } catch (error) {
       handleError(error);
+    }
+  }
+
+  private notifyKitchen(order: OrderResponseDto): void {
+    try {
+      this.realtimeService.emitToRole(
+        `role:${RoleEnum.COOKER}`,
+        RealtimeEvent.KITCHEN_ORDER_NEW,
+        order,
+      );
+    } catch (error) {
+      // The order is committed; a notification failure must not report a failed save.
+      this.realtimeLogger.error('Order saved but kitchen notification failed', error);
     }
   }
 
