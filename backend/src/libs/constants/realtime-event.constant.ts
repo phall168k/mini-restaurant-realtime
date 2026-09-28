@@ -9,3 +9,6 @@ export const RealtimeEvent = {
   ORDER_CANCELED: 'order:canceled',
   TABLE_STATUS_CHANGED: 'table:status-changed',
 } as const;
+
+export type RealtimeEventType =
+  (typeof RealtimeEvent)[keyof typeof RealtimeEvent];
