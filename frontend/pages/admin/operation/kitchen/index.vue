@@ -12,8 +12,16 @@ import type { IOrder, IOrderLine } from '~/types/order'
 import { RoleEnum } from '~/constants/role.enum'
 import type { IUser } from '~/types/user'
 import type { IKitchen, IKitchenForm, IKitchenListResponse, IKitchenOrderItem } from '~/types/kitchen'
+import { RealtimeEvent } from '~/constants/realtime-events'
 
-definePageMeta({ title: 'Kitchen', titleKey: 'kitchen.title', hidePageHeader: true })
+definePageMeta({ 
+  title: 'Kitchen', 
+  titleKey: 'kitchen.title', 
+  hidePageHeader: true 
+})
+
+const { $socket } = useNuxtApp();
+
 const { t, locale } = useI18n()
 const elementLocale = computed(() => locale.value === 'km' ? km : en)
 const user = useCookie<IUser | null>('users')
@@ -45,6 +53,7 @@ const itemsLoading = ref(false)
 const itemsError = ref('')
 const itemSearch = ref('')
 const createError = ref('')
+const newOrdersDuringLoad = new Map<number, IOrder>()
 const drafts = reactive<Record<number, { status: KitchenStatus; description: string; saved: boolean }>>({})
 const visibleItems = computed(() => items.value.filter(item => itemLabel(item).toLocaleLowerCase().includes(itemSearch.value.trim().toLocaleLowerCase())))
 const drawerVisible = ref(false)
@@ -61,6 +70,7 @@ const canMakeReady = computed(() => !!drawerOrder.value &&
   ['PENDING', 'PREPARING', 'READY'].includes(drawerOrder.value.status) &&
   drawerOrder.value.items.some(line => ['PENDING', 'PREPARING'].includes(line.status)))
 const itemAction = ref<{ id: number; action: 'start' | 'ready' } | null>(null)
+
 function canUpdateItem(line: IOrderLine, action: 'start' | 'ready') {
   return !!drawerOrder.value && ['PENDING', 'PREPARING', 'READY'].includes(drawerOrder.value.status) &&
     (action === 'start' ? line.status === 'PENDING' : ['PENDING', 'PREPARING'].includes(line.status))
@@ -102,6 +112,7 @@ async function makeAllReady() {
     saving.value = false
   }
 }
+
 async function openOrderDetails(id: number) {
   const current = ++drawerRequest
   drawerOrderId.value = id
@@ -116,10 +127,12 @@ async function openOrderDetails(id: number) {
     if (current === drawerRequest) drawerError.value = errorMessage(error, t('kitchen.details_error'))
   } finally { if (current === drawerRequest) drawerLoading.value = false }
 }
+
 function price(value: string | number) {
   const amount = Number(value)
   return Number.isFinite(amount) ? new Intl.NumberFormat(locale.value === 'km' ? 'km-KH' : 'en-US', { style: 'currency', currency: 'USD' }).format(amount) : '—'
 }
+
 const rowAction = ref<{ id: number; status: 'ACCEPTED' | 'CANCELED' } | null>(null)
 async function saveItemAction(id: number, status: 'ACCEPTED' | 'CANCELED') {
   const draft = drafts[id]
@@ -157,15 +170,18 @@ async function saveItemAction(id: number, status: 'ACCEPTED' | 'CANCELED') {
     saving.value = false
   }
 }
+
 const itemOptions = computed(() => {
   const options = new Map(items.value.map(item => [item.id, item]))
   if (selectedItem.value) options.set(selectedItem.value.id, selectedItem.value)
   return [...options.values()]
 })
+
 const rules = computed<FormRules<IKitchenForm>>(() => ({
   orderId: [{ required: true, type: 'number', min: 1, message: t('kitchen.item_required'), trigger: 'change' }],
   status: [{ required: true, message: t('kitchen.status_required'), trigger: 'change' }],
 }))
+
 let requestId = 0
 let itemRequestId = 0
 function errorMessage(error: unknown, fallback: string) {
@@ -174,17 +190,21 @@ function errorMessage(error: unknown, fallback: string) {
   if (Array.isArray(message) && message.every(item => typeof item === 'string')) return message.join(' ')
   return fallback
 }
+
 function itemName(item: IOrderLine | null) {
   if (!item) return '—'
   return item.item ? `${item.item.code} — ${locale.value === 'km' ? item.item.nameKh : item.item.nameEn}` : `#${item.itemId}`
 }
+
 function itemLabel(order: IOrder) {
   return `${order.orderNumber} · ${order.table?.name || '—'} · ${order.items.map(itemName).join(' ')}`
 }
+
 function formatDate(value: string) {
   const date = new Date(value)
   return Number.isNaN(date.getTime()) ? '—' : date.toLocaleString(locale.value === 'km' ? 'km-KH' : 'en-US')
 }
+
 async function loadRecords() {
   const current = ++requestId
   loading.value = true
@@ -205,6 +225,7 @@ async function loadRecords() {
     listError.value = errorMessage(error, t('kitchen.load_error'))
   } finally { if (current === requestId) loading.value = false }
 }
+
 function applyFilters() { appliedSearch.value = search.value.trim(); page.value = 1; loadRecords() }
 function changePage(value: number) { page.value = value; loadRecords() }
 function changePageSize(value: number) { pageSize.value = value; page.value = 1; loadRecords() }
@@ -229,11 +250,15 @@ async function loadItems() {
         drafts[line.orderId] ??= { status: 'PENDING', description: '', saved: false }
       }
       items.value = [...grouped.values()]
+      // Preserve events received after the list request started.
+      for (const order of newOrdersDuringLoad.values()) upsertPendingOrder(order)
+      newOrdersDuringLoad.clear()
     }
   } catch (error) {
     if (current === itemRequestId) itemsError.value = errorMessage(error, t('kitchen.items_error'))
   } finally { if (current === itemRequestId) itemsLoading.value = false }
 }
+
 function selectItem(id: number) { selectedItem.value = itemOptions.value.find(item => item.id === id) ?? null }
 async function openForm(record?: IKitchen) {
   if (busy.value || (record ? !canEdit.value : !canCreate.value)) return
@@ -250,6 +275,7 @@ async function openForm(record?: IKitchen) {
   await nextTick()
   formRef.value?.clearValidate()
 }
+
 async function saveRecord() {
   if (busy.value || !formRef.value || (editingId.value === null ? !canCreate.value : !canEdit.value)) return
   saving.value = true
@@ -266,6 +292,7 @@ async function saveRecord() {
   } catch (error) { useMessage(errorMessage(error, t('kitchen.save_error')), 'error') }
   finally { saving.value = false }
 }
+
 async function deleteRecord(record: IKitchen) {
   if (busy.value || !canCreate.value) return
   deletingId.value = record.id
@@ -278,9 +305,45 @@ async function deleteRecord(record: IKitchen) {
     if (error !== 'cancel' && error !== 'close') useMessage(errorMessage(error, t('kitchen.delete_error')), 'error')
   } finally { deletingId.value = null }
 }
-onMounted(() => { void loadItems(); void loadRecords() })
+
+function upsertPendingOrder(order: IOrder) {
+  if (!order || !Number.isInteger(order.id) || !Array.isArray(order.items)) return
+  const pendingItems = order.items.filter(line => line.status === 'PENDING')
+  const index = items.value.findIndex(item => item.id === order.id)
+  if (['DRAFT', 'CANCELED', 'PAID'].includes(order.status) || !pendingItems.length) {
+    if (index !== -1) items.value.splice(index, 1)
+    return
+  }
+  drafts[order.id] ??= { status: 'PENDING', description: '', saved: false }
+  const pendingOrder = { ...order, items: pendingItems }
+  if (index === -1) items.value.push(pendingOrder)
+  else items.value[index] = pendingOrder
+}
+
+const setNewOrderItem = (order: IOrder) => {
+  if (!order || !Number.isInteger(order.id) || !Array.isArray(order.items)) return
+  if (itemsLoading.value) newOrdersDuringLoad.set(order.id, order)
+  upsertPendingOrder(order)
+}
+
+onMounted(() => { 
+  void loadItems(); 
+  void loadRecords();
+  $socket.on(
+    RealtimeEvent.KITCHEN_ORDER_NEW,
+    setNewOrderItem,
+  )
+})
 onBeforeRouteLeave(() => !saving.value)
-onBeforeUnmount(() => { requestId++; itemRequestId++; drawerRequest++ })
+onBeforeUnmount(() => { 
+  requestId++; 
+  itemRequestId++; 
+  drawerRequest++;
+  $socket.off(
+    RealtimeEvent.KITCHEN_ORDER_NEW,
+    setNewOrderItem,
+  ); 
+})
 </script>
 
 <template>
@@ -303,15 +366,15 @@ onBeforeUnmount(() => { requestId++; itemRequestId++; drawerRequest++ })
           <el-table v-loading="itemsLoading" :data="visibleItems" row-key="id" stripe :empty-text="t('kitchen.no_active_orders')" max-height="65vh">
             <el-table-column :label="t('kitchen.order')" min-width="170"><template #default="{ row }">{{ row.orderNumber }}</template></el-table-column>
             <el-table-column :label="t('kitchen.table')" min-width="140"><template #default="{ row }">{{ row.table?.name || '—' }}</template></el-table-column>
-        <el-table-column :label="t('kitchen.item')" min-width="300">
-          <template #default="{ row }">
-            <div v-for="line in row.items" :key="line.id" class="flex items-center gap-3 py-2">
-              <div class="h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-slate-100 text-slate-400"><FoodThumbnail :attachment="line.item?.thumbnail" :alt="itemName(line)" /></div>
-              <div class="flex-1">{{ itemName(line) }}</div>
-              <span class="font-semibold" :aria-label="t('order.quantity')">× {{ line.quantity }}</span>
-            </div>
-          </template>
-        </el-table-column>
+            <el-table-column :label="t('kitchen.item')" min-width="300">
+              <template #default="{ row }">
+                <div v-for="line in row.items" :key="line.id" class="flex items-center gap-3 py-2">
+                  <div class="h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-slate-100 text-slate-400"><FoodThumbnail :attachment="line.item?.thumbnail" :alt="itemName(line)" /></div>
+                  <div class="flex-1">{{ itemName(line) }}</div>
+                  <span class="font-semibold" :aria-label="t('order.quantity')">× {{ line.quantity }}</span>
+                </div>
+              </template>
+            </el-table-column>
             <el-table-column :label="t('kitchen.status')" min-width="180">
               <template #default="{ row }">
                 <el-tag v-if="drafts[row.id]!.saved" :type="drafts[row.id]!.status === 'CANCELED' ? 'danger' : 'success'">{{ t(`kitchen.statuses.${drafts[row.id]!.status}`) }}</el-tag>
