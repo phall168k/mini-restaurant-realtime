@@ -1,3 +1,4 @@
+import { RealtimeService } from './realtime.service';
 import { 
   ConnectedSocket, 
   MessageBody, 
@@ -38,9 +39,11 @@ export class RealtimeGateway
   constructor(
     private readonly jwtService: JwtService,
     private readonly userService: UserService,
+    private readonly realtimeService: RealtimeService,
   ) {}
 
   afterInit(server: Server) {
+    this.realtimeService.initialize(server);
     this.logger.log(`Websocket Gateway initialized`);
   }
 

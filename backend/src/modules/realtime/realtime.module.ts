@@ -19,6 +19,6 @@ import { RealtimeService } from './realtime.service';
     UserModule,
   ],
   providers: [RealtimeGateway, RealtimeService],
-  exports: [],
+  exports: [RealtimeService],
 })
 export class RealtimeModule {}
