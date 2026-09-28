@@ -16,6 +16,8 @@ import {
 import { ApiPaginatedResponse } from '../../../../libs/services/pagination/decorators/api-paginated-response.decorador';
 import { SWAGGER_TOKEN_NAME } from '../../../../swagger/config';
 import { OrderResponseDto } from './dto/order-response.dto';
+import { OrderItemResponseDto } from './dto/order-item-response.dto';
+import { OrderItemStatus } from '../../../../libs/enums/order-item-status.enum';
 import { PaginationParams } from '../../../../libs/services/pagination/decorators/pagination-params.decorator';
 import { type PaginationRequest } from '../../../../libs/services/pagination/interfaces/pagination-request.interface';
 import {
@@ -26,6 +28,9 @@ import {
   Param,
   Delete,
   ParseIntPipe,
+  ParseEnumPipe,
+  DefaultValuePipe,
+  Query,
   Put,
 } from '@nestjs/common';
 import { OrderService } from './order.service';
@@ -100,6 +105,31 @@ export class OrderController {
     @PaginationParams() pagination: PaginationRequest,
   ): Promise<PaginationResponseDto<OrderResponseDto>> {
     return this.orderService.findAll(pagination);
+  }
+
+  @Get('items')
+  @Roles(RoleEnum.COOKER, RoleEnum.RECEPTIONIST)
+  @ApiOperation({
+    summary: 'List order items for the kitchen',
+    description: 'Returns items with the requested status, oldest first. Defaults to PENDING.',
+  })
+  @ApiQuery({
+    name: 'status',
+    enum: OrderItemStatus,
+    required: false,
+    description: 'Order item status (defaults to PENDING)',
+  })
+  @ApiOkResponse({ type: OrderItemResponseDto, isArray: true })
+  @ApiBadRequestResponse({ description: 'Invalid order item status' })
+  public itemOrderList(
+    @Query(
+      'status',
+      new DefaultValuePipe(OrderItemStatus.PENDING),
+      new ParseEnumPipe(OrderItemStatus),
+    )
+    status: OrderItemStatus,
+  ): Promise<OrderItemResponseDto[]> {
+    return this.orderService.itemOrderList(status);
   }
 
   @Get(':id')

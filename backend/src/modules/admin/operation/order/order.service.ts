@@ -19,6 +19,9 @@ import { CreateOrderRequestDto } from './dto/create-order-request.dto';
 import { UpdateOrderRequestDto } from './dto/update-order-request.dto';
 import { OrderResponseDto } from './dto/order-response.dto';
 import { OrderMapper } from './order.mapper';
+import { OrderItemStatus } from '../../../../libs/enums/order-item-status.enum';
+import { OrderItemMapper } from './order-item.mapper';
+import { OrderItemResponseDto } from './dto/order-item-response.dto';
 
 @Injectable()
 export class OrderService extends BaseCrudService<
@@ -31,6 +34,8 @@ export class OrderService extends BaseCrudService<
   constructor(
     @InjectRepository(OrderEntity)
     private readonly repository: Repository<OrderEntity>,
+    @InjectRepository(OrderItemEntity)
+    private readonly itemOrderRepository: Repository<OrderItemEntity>,
   ) {
     super();
   }
@@ -157,6 +162,34 @@ export class OrderService extends BaseCrudService<
       handleError(error);
     }
   }
+
+  // Listing order item for cooker
+  async itemOrderList(status: OrderItemStatus = OrderItemStatus.PENDING): Promise<OrderItemResponseDto[]> {
+    try {
+      const entities = await this.itemOrderRepository.find({
+        relations: {
+          order: {
+            table: true,
+            createdByUser: true,
+          },
+          item: true,
+        },
+        where: {
+          status,
+        },
+        order: {
+          createdAt: 'ASC',
+        },
+      });
+      const items = Promise.all(
+        entities.map((item) => OrderItemMapper.toDto(item)),
+      );
+      return items;
+    } catch (error) {
+      handleError(error);
+    }
+  }
+
   async submitToKitchen(
     id: number,
     transactionManager?: EntityManager,
