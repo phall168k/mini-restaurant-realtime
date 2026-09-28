@@ -1,64 +1,49 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { KitchenStatus } from '../../../../../libs/enums/kitchen-status.enum';
-import { OrderStatus } from '../../../../../libs/enums/order-status.enum';
+import { OrderItemResponseDto } from '../../order/dto/order-item-response.dto';
 import { UserSelectOptionResponseDto } from '../../../system/user/dto/user-select-option-response.dto';
-export class KitchenOrderResponseDto {
-  @ApiProperty() 
-  id: number;
-
-  @ApiProperty() 
-  orderNumber: string;
-
-  @ApiProperty() 
-  tableId: number;
-
-  @ApiProperty({ 
-    enum: OrderStatus 
-  }) 
-  status: OrderStatus;
-}
 export class KitchenResponseDto {
-  @ApiProperty() 
+  @ApiProperty()
   id: number;
 
-  @ApiProperty() 
-  orderId: number;
+  @ApiProperty()
+  orderItemId: number;
 
-  @ApiProperty({ 
-    type: KitchenOrderResponseDto, 
-    nullable: true 
+  @ApiProperty({
+    type: OrderItemResponseDto,
+    nullable: true,
   })
-  order: KitchenOrderResponseDto | null;
+  orderItem: OrderItemResponseDto | null;
 
-  @ApiProperty() 
+  @ApiProperty()
   performedById: number;
 
-  @ApiProperty({ 
-    type: UserSelectOptionResponseDto, 
-    nullable: true 
+  @ApiProperty({
+    type: UserSelectOptionResponseDto,
+    nullable: true,
   })
   performedBy: UserSelectOptionResponseDto | null;
 
-  @ApiProperty({ 
-    enum: KitchenStatus 
-  }) 
+  @ApiProperty({
+    enum: KitchenStatus,
+  })
   status: KitchenStatus;
 
-  @ApiProperty({ 
-    type: String, 
-    nullable: true 
-  }) 
+  @ApiProperty({
+    type: String,
+    nullable: true,
+  })
   description: string | null;
 
-  @ApiProperty() 
+  @ApiProperty()
   createdAt: Date;
 
-  @ApiProperty() 
+  @ApiProperty()
   updatedAt: Date;
 
-  @ApiProperty({ 
-    type: Date, 
-    nullable: true 
-  }) 
+  @ApiProperty({
+    type: Date,
+    nullable: true,
+  })
   deletedAt: Date | null;
 }

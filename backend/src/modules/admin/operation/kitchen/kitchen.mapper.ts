@@ -1,22 +1,15 @@
+import { OrderItemMapper } from '../order/order-item.mapper';
 import { KitchenEntity } from './entities/kitchen.entity';
-import {
-  KitchenOrderResponseDto,
-  KitchenResponseDto,
-} from './dto/kitchen-response.dto';
+import { KitchenResponseDto } from './dto/kitchen-response.dto';
 import { UserMapper } from '../../system/user/user.mapper';
 export class KitchenMapper {
   static async toDto(entity: KitchenEntity): Promise<KitchenResponseDto> {
     return Object.assign(new KitchenResponseDto(), {
       id: entity.id,
-      orderId: entity.orderId,
+      orderItemId: entity.orderItemId,
       performedById: entity.performedById,
-      order: entity.order
-        ? Object.assign(new KitchenOrderResponseDto(), {
-            id: entity.order.id,
-            orderNumber: entity.order.orderNumber,
-            tableId: entity.order.tableId,
-            status: entity.order.status,
-          })
+      orderItem: entity.orderItem
+        ? await OrderItemMapper.toDto(entity.orderItem)
         : null,
       performedBy: entity.performedBy
         ? await UserMapper.toSelectOptionDto(entity.performedBy)

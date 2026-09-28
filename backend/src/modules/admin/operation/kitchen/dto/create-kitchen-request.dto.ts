@@ -15,30 +15,30 @@ import {
 import { KitchenStatus } from '../../../../../libs/enums/kitchen-status.enum';
 
 export class CreateKitchenRequestDto {
-  @ApiProperty({ 
-    description: 'ID of the related order' 
+  @ApiProperty({
+    description: 'ID of the related order item',
   })
   @IsInt()
   @Min(1)
   @Max(2147483647)
-  orderId: number;
+  orderItemId: number;
 
-  @ApiPropertyOptional({ 
-    enum: KitchenStatus, 
-    default: KitchenStatus.PENDING 
+  @ApiPropertyOptional({
+    enum: KitchenStatus,
+    default: KitchenStatus.PENDING,
   })
   @ValidateIf((_object, value) => value !== undefined)
   @IsEnum(KitchenStatus)
   status?: KitchenStatus;
 
-  @ApiPropertyOptional({ 
-    type: String, 
-    nullable: true 
+  @ApiPropertyOptional({
+    type: String,
+    nullable: true,
   })
   @IsOptional()
   @IsString()
   description?: string | null;
 
-  @ApiHideProperty() 
+  @ApiHideProperty()
   performedById: number;
 }

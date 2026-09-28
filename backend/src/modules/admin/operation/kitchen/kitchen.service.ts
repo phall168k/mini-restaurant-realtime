@@ -10,7 +10,7 @@ import { QueryFilters } from '../../../../libs/services/pagination/filter.helper
 import { handleError } from '../../../../libs/utils/handle-error.util';
 import { KitchenStatus } from '../../../../libs/enums/kitchen-status.enum';
 import { KitchenEntity } from './entities/kitchen.entity';
-import { OrderEntity } from '../order/entities/order.entity';
+import { OrderItemEntity } from '../order/entities/order-item.entity';
 import { UserEntity } from '../../system/user/entities/user.entity';
 import { KitchenResponseDto } from './dto/kitchen-response.dto';
 import { CreateKitchenRequestDto } from './dto/create-kitchen-request.dto';
@@ -31,8 +31,8 @@ export class KitchenService extends BaseCrudService<
   constructor(
     @InjectRepository(KitchenEntity)
     private readonly repository: Repository<KitchenEntity>,
-    @InjectRepository(OrderEntity)
-    private readonly orderRepository: Repository<OrderEntity>,
+    @InjectRepository(OrderItemEntity)
+    private readonly orderItemRepository: Repository<OrderItemEntity>,
     @InjectRepository(UserEntity)
     private readonly userRepository: Repository<UserEntity>,
   ) {
@@ -44,7 +44,10 @@ export class KitchenService extends BaseCrudService<
   protected getListQuery() {
     return this.repository
       .createQueryBuilder(this.queryName)
-      .leftJoinAndSelect('kitchen.order', 'order')
+      .leftJoinAndSelect('kitchen.orderItem', 'orderItem')
+      .leftJoinAndSelect('orderItem.order', 'order')
+      .leftJoinAndSelect('order.table', 'table')
+      .leftJoinAndSelect('orderItem.item', 'item')
       .leftJoinAndSelect('kitchen.performedBy', 'performedBy');
   }
   protected getFilters(): QueryFilters<KitchenEntity> {
@@ -57,7 +60,7 @@ export class KitchenService extends BaseCrudService<
         });
       },
     };
-    for (const field of ['orderId', 'performedById'])
+    for (const field of ['orderItemId', 'performedById'])
       filters[field] = (query, value) => {
         const id =
           typeof value === 'number'
@@ -73,9 +76,9 @@ export class KitchenService extends BaseCrudService<
       };
     return filters;
   }
-  private async requireOrder(id: number) {
-    if (!(await this.orderRepository.findOneBy({ id })))
-      throw new NotFoundException('Order not found');
+  private async requireOrderItem(id: number) {
+    if (!(await this.orderItemRepository.findOneBy({ id })))
+      throw new NotFoundException('Order item not found');
   }
   private async requireUser(id: number) {
     if (!(await this.userRepository.findOneBy({ id })))
@@ -83,11 +86,11 @@ export class KitchenService extends BaseCrudService<
   }
   async create(dto: CreateKitchenRequestDto): Promise<KitchenResponseDto> {
     try {
-      await this.requireOrder(dto.orderId);
+      await this.requireOrderItem(dto.orderItemId);
       await this.requireUser(dto.performedById);
       const entity = await this.repository.save(
         this.repository.create({
-          orderId: dto.orderId,
+          orderItemId: dto.orderItemId,
           performedById: dto.performedById,
           status: dto.status ?? KitchenStatus.PENDING,
           description: dto.description ?? null,
@@ -102,7 +105,10 @@ export class KitchenService extends BaseCrudService<
     try {
       const entity = await this.repository.findOne({
         where: { id },
-        relations: { order: true, performedBy: true },
+        relations: {
+          orderItem: { order: { table: true }, item: true },
+          performedBy: true,
+        },
       });
       if (!entity) throw new NotFoundException('Kitchen record not found');
       return await KitchenMapper.toDto(entity);
@@ -118,9 +124,10 @@ export class KitchenService extends BaseCrudService<
     try {
       const entity = await this.repository.findOneBy({ id });
       if (!entity) throw new NotFoundException('Kitchen record not found');
-      if (dto.orderId !== undefined) await this.requireOrder(dto.orderId);
+      if (dto.orderItemId !== undefined)
+        await this.requireOrderItem(dto.orderItemId);
       await this.requireUser(performedById);
-      if (dto.orderId !== undefined) entity.orderId = dto.orderId;
+      if (dto.orderItemId !== undefined) entity.orderItemId = dto.orderItemId;
       if (dto.status !== undefined) entity.status = dto.status;
       if (dto.description !== undefined) entity.description = dto.description;
       entity.performedById = performedById;
@@ -134,7 +141,10 @@ export class KitchenService extends BaseCrudService<
     try {
       const entity = await this.repository.findOne({
         where: { id },
-        relations: { order: true, performedBy: true },
+        relations: {
+          orderItem: { order: { table: true }, item: true },
+          performedBy: true,
+        },
       });
       if (!entity) throw new NotFoundException('Kitchen record not found');
       return await KitchenMapper.toDto(

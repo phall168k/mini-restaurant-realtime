@@ -50,7 +50,7 @@ export class KitchenController {
   })
   @ApiBody({ type: CreateKitchenRequestDto })
   @ApiCreatedResponse({ type: KitchenResponseDto })
-  @ApiNotFoundResponse({ description: 'Order or user not found' })
+  @ApiNotFoundResponse({ description: 'Order item or user not found' })
   @ApiUnprocessableEntityResponse({ description: 'Invalid kitchen data' })
   create(
     @Body() dto: CreateKitchenRequestDto,
@@ -68,14 +68,14 @@ export class KitchenController {
   @ApiPaginatedResponse(KitchenResponseDto)
   @ApiQuery({ name: 'search', type: String, required: false })
   @ApiQuery({ name: 'status', enum: KitchenStatus, required: false })
-  @ApiQuery({ name: 'orderId', type: Number, required: false })
+  @ApiQuery({ name: 'orderItemId', type: Number, required: false })
   @ApiQuery({ name: 'performedById', type: Number, required: false })
   findAll(
     @PaginationParams() pagination: PaginationRequest,
   ): Promise<PaginationResponseDto<KitchenResponseDto>> {
     return this.service.findAll(pagination);
   }
-  
+
   @Get(':id')
   @Roles(RoleEnum.COOKER, RoleEnum.RECEPTIONIST)
   @ApiOperation({ summary: 'Find a kitchen record' })
@@ -95,7 +95,7 @@ export class KitchenController {
   @ApiBody({ type: UpdateKitchenRequestDto })
   @ApiOkResponse({ type: KitchenResponseDto })
   @ApiNotFoundResponse({
-    description: 'Kitchen record, order, or user not found',
+    description: 'Kitchen record, order item, or user not found',
   })
   update(
     @Param('id', ParseIntPipe) id: number,

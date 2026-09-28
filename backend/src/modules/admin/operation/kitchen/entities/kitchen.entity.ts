@@ -8,35 +8,35 @@ import {
 } from 'typeorm';
 import { BaseEntity } from '../../../../../database/entities/base.entity';
 import { KitchenStatus } from '../../../../../libs/enums/kitchen-status.enum';
-import { OrderEntity } from '../../order/entities/order.entity';
+import { OrderItemEntity } from '../../order/entities/order-item.entity';
 import { UserEntity } from '../../../system/user/entities/user.entity';
 
-@Entity({ 
-  schema: 'admin', 
-  name: 'kitchens' 
+@Entity({
+  schema: 'admin',
+  name: 'kitchens',
 })
-@Index('IDX_kitchens_order_id', ['orderId'])
+@Index('IDX_kitchens_order_item_id', ['orderItemId'])
 @Index('IDX_kitchens_performed_by_id', ['performedById'])
 export class KitchenEntity extends BaseEntity {
   @PrimaryGeneratedColumn() id: number;
-  @Column({ 
-    name: 'order_id', 
-    type: 'integer' 
-  }) 
-  orderId: number;
+  @Column({
+    name: 'order_item_id',
+    type: 'integer',
+  })
+  orderItemId: number;
 
-  @ManyToOne(() => OrderEntity, {
+  @ManyToOne(() => OrderItemEntity, {
     nullable: false,
     onDelete: 'RESTRICT',
     onUpdate: 'CASCADE',
   })
-  @JoinColumn({ name: 'order_id' })
-  order: OrderEntity;
+  @JoinColumn({ name: 'order_item_id' })
+  orderItem: OrderItemEntity;
 
-  @Column({ 
-    name: 'performed_by_id', 
-    type: 'integer' 
-  }) 
+  @Column({
+    name: 'performed_by_id',
+    type: 'integer',
+  })
   performedById: number;
 
   @ManyToOne(() => UserEntity, {
@@ -44,8 +44,8 @@ export class KitchenEntity extends BaseEntity {
     onDelete: 'RESTRICT',
     onUpdate: 'CASCADE',
   })
-  @JoinColumn({ 
-    name: 'performed_by_id' 
+  @JoinColumn({
+    name: 'performed_by_id',
   })
   performedBy: UserEntity;
 
@@ -57,9 +57,9 @@ export class KitchenEntity extends BaseEntity {
   })
   status: KitchenStatus;
 
-  @Column({ 
-    type: 'text', 
-    nullable: true 
-  }) 
+  @Column({
+    type: 'text',
+    nullable: true,
+  })
   description: string | null;
 }
