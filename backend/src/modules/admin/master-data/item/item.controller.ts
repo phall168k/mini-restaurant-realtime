@@ -51,7 +51,7 @@ export class ItemController {
   }
 
   @Get()
-  @Roles(RoleEnum.ADMIN)
+  @Roles(RoleEnum.ADMIN, RoleEnum.RECEPTIONIST)
   @ApiOperation({ summary: 'List items', description: 'Search by code, English or Khmer name, description, or category name.' })
   @ApiPaginatedResponse(ItemResponseDto)
   @ApiQuery({ name: 'search', type: String, required: false })
