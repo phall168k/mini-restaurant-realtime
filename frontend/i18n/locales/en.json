@@ -375,6 +375,17 @@
         "submit_confirm": "Submit order \"{name}\" to the kitchen? Its status will change from Draft to Pending."
     },
     "kitchen": {
+        "cancel_item": "Cancel item",
+        "keep_item": "Keep item",
+        "cancel_confirm": "Cancel this item? It cannot be restarted from the kitchen.",
+        "item_updated": "Item status updated.",
+        "bulk_partial_error": "Could not update {count} item(s). Please review and try again.",
+        "ready_remaining": "{count} item(s) still need to be marked ready.",
+        "no_pending_items": "No items waiting to be marked ready.",
+        "orders_subtitle": "View incoming orders, food items, and preparation status.",
+        "no_matching_orders": "No orders match this item status.",
+        "filter_help": "Filter order items by status. Select an order to manage preparation.",
+
         "start": "Start",
         "mark_ready": "Mark Ready",
         "item_update_error": "Unable to update this item.",
