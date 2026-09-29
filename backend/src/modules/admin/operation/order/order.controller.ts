@@ -186,6 +186,25 @@ export class OrderController {
     return this.orderService.submitToKitchen(id);
   }
   
+  // Serve the ready order and its non-canceled items in one transaction.
+  @Post(':id/serve')
+  @Roles(RoleEnum.RECEPTIONIST)
+  @ApiOperation({
+    summary: 'Mark a ready order as served',
+    description:
+      'Changes a READY order and its READY items to SERVED. All non-canceled items must be READY or SERVED. Canceled items are preserved. Returns the updated order and notifies staff after commit.',
+  })
+  @ApiParam({ name: 'id', type: Number, description: 'Order ID' })
+  @ApiCreatedResponse({ type: OrderResponseDto })
+  @ApiNotFoundResponse({ description: 'Order not found' })
+  @ApiConflictResponse({ description: 'Order or its items are not ready to serve' })
+  @ApiBadRequestResponse({ description: 'Invalid order ID' })
+  public serveOrder(
+    @Param('id', ParseIntPipe) id: number,
+  ): Promise<OrderResponseDto> {
+    return this.orderService.serveOrder(id);
+  }
+
   @Post(':id/change-item-status')
   @Roles(RoleEnum.RECEPTIONIST, RoleEnum.COOKER)
   public changeItemStatus(

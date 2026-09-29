@@ -365,6 +365,48 @@ export class OrderService extends BaseCrudService<
       handleError(error);
     }
   }
+  // Serve a ready order atomically, preserving canceled lines and table occupancy.
+  async serveOrder(orderId: number): Promise<OrderResponseDto> {
+    try {
+      const result = await this.repository.manager.transaction(async (manager) => {
+        // Serialize serving with item additions and kitchen status updates.
+        const order = await manager.findOne(OrderEntity, {
+          where: { id: orderId },
+          lock: { mode: 'pessimistic_write' },
+        });
+        if (!order) throw new NotFoundException('Order not found');
+        if (order.status !== OrderStatus.READY) {
+          throw new ConflictException('Only ready orders can be served');
+        }
+        const items = await manager.find(OrderItemEntity, { where: { orderId } });
+        const activeItems = items.filter(item => item.status !== OrderItemStatus.CANCELED);
+        if (!activeItems.length || activeItems.some(item =>
+          ![OrderItemStatus.READY, OrderItemStatus.SERVED].includes(item.status))) {
+          throw new ConflictException('All non-canceled items must be ready before serving');
+        }
+        await manager.update(OrderItemEntity,
+          { orderId, status: OrderItemStatus.READY },
+          { status: OrderItemStatus.SERVED },
+        );
+        await manager.update(OrderEntity, { id: orderId }, { status: OrderStatus.SERVED });
+        return OrderMapper.toDto(await this.load(manager, orderId));
+      });
+      // Emit the updated order only after the transaction has committed.
+      try {
+        this.realtimeService.emitToRoles(
+          [`role:${RoleEnum.RECEPTIONIST}`, `role:${RoleEnum.COOKER}`, `role:${RoleEnum.CASHIER}`],
+          RealtimeEvent.ORDER_STATUS_CHANGED,
+          result,
+        );
+      } catch (error) {
+        this.realtimeLogger.error('Order served but status notification failed', error);
+      }
+      return result;
+    } catch (error) {
+      handleError(error);
+    }
+  }
+
   async remove(id: number): Promise<OrderResponseDto> {
     try {
       return await this.repository.manager.transaction(async (manager) => {
