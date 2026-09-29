@@ -388,10 +388,28 @@ function handleOrderStatusChange(payload: IOrderItemStatusChange) {
     void loadOrders()
 }
 
+function handlePaidOrder(item: IOrder) {
+  if (
+    !item ||
+    !Number.isInteger(item.id) ||
+    item.id <= 0 ||
+    item.status !== 'PAID'
+  )
+    return
+
+  function markPaid(order: IOrder | null | undefined) {
+    if (!order || order.id !== item.id) return
+    order.status = 'PAID'
+  }
+
+  markPaid(orders.value.find((order) => order.id === item.id))
+}
+
 // Lifecycle: load the list and invalidate pending requests when leaving the page.
 onMounted(() => {
   void loadOrders()
   $socket.on(RealtimeEvent.ORDER_ITEM_STATUS_CHANGED, handleOrderStatusChange)
+  $socket.on(RealtimeEvent.ORDER_STATUS_CHANGED, handlePaidOrder)
 })
 onBeforeRouteLeave(
   () => !saving.value && !addingItem.value && servingId.value === null,
@@ -399,6 +417,7 @@ onBeforeRouteLeave(
 onBeforeUnmount(() => {
   requestId++
   $socket.off(RealtimeEvent.ORDER_ITEM_STATUS_CHANGED, handleOrderStatusChange)
+  $socket.off(RealtimeEvent.ORDER_STATUS_CHANGED, handlePaidOrder)
 })
 </script>
 
