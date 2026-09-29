@@ -8,13 +8,19 @@ import en from 'element-plus/es/locale/lang/en'
 import km from 'element-plus/es/locale/lang/km'
 import type { IUser } from '~/types/user'
 import { RoleEnum } from '~/constants/role.enum'
-import { ORDER_STATUSES, type OrderStatus } from '~/constants/order-status'
+import {
+  ORDER_STATUSES,
+  ORDER_ITEM_STATUSES,
+  type OrderStatus,
+} from '~/constants/order-status'
 import type {
   IOrder,
   IOrderForm,
   IOrderListResponse,
   IOrderItemOption,
+  IOrderItemStatusChange,
 } from '~/types/order'
+import { RealtimeEvent } from '~/constants/realtime-events'
 
 // Page metadata and localization.
 definePageMeta({
@@ -295,13 +301,64 @@ async function saveAdditionalItem(item: {
   }
 }
 
+// =========================
+// Realtime Features
+// =========================
+const { $socket } = useNuxtApp()
+
+// Validate socket data before patching the order header and its changed line.
+function handleOrderStatusChange(payload: IOrderItemStatusChange) {
+  if (
+    !payload ||
+    !Number.isInteger(payload.id) ||
+    payload.id <= 0 ||
+    !ORDER_STATUSES.includes(payload.status) ||
+    !payload.item ||
+    !Number.isInteger(payload.item.orderItemId) ||
+    payload.item.orderItemId <= 0 ||
+    !ORDER_ITEM_STATUSES.includes(payload.item.status)
+  )
+    return
+
+  const order = orders.value.find((order) => order.id === payload.id)
+  const previousStatus = order?.status
+  const missingLine =
+    !!order && !order.items.some((line) => line.id === payload.item.orderItemId)
+
+  function updateOrder(target: IOrder | null | undefined) {
+    if (!target || target.id !== payload.id) return
+    target.status = payload.status
+    const line = target.items.find(
+      (line) => line.id === payload.item.orderItemId,
+    )
+    if (line) line.status = payload.item.status
+  }
+
+  updateOrder(order)
+  updateOrder(selectedOrder.value)
+  updateOrder(addItemOrder.value)
+
+  // Reload when membership in the filtered page may change or local lines are incomplete.
+  // Restart an in-flight load as well, so its older snapshot cannot undo this update.
+  if (
+    loading.value ||
+    missingLine ||
+    (statusFilter.value &&
+      ((order && previousStatus !== payload.status) ||
+        (!order && payload.status === statusFilter.value)))
+  )
+    void loadOrders()
+}
+
 // Lifecycle: load the list and invalidate pending requests when leaving the page.
 onMounted(() => {
   void loadOrders()
+  $socket.on(RealtimeEvent.ORDER_ITEM_STATUS_CHANGED, handleOrderStatusChange)
 })
 onBeforeRouteLeave(() => !saving.value && !addingItem.value)
 onBeforeUnmount(() => {
   requestId++
+  $socket.off(RealtimeEvent.ORDER_ITEM_STATUS_CHANGED, handleOrderStatusChange)
 })
 </script>
 

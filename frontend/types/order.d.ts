@@ -71,3 +71,12 @@ export interface IOrderListResponse {
   }
   timestamp: number
 }
+
+export interface IOrderItemStatusChange {
+  id: number;
+  status: OrderStatus
+  item: {
+    orderItemId: number
+    status: OrderItemStatus
+  }
+}
