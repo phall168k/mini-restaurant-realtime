@@ -8,6 +8,7 @@ export const ORDER_STATUSES = [
   'CANCELED',
 ] as const
 export const ORDER_ITEM_STATUSES = [
+  'DRAFT',
   'PENDING',
   'PREPARING',
   'READY',
