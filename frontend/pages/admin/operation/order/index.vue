@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import OrderAddItem from '~/components/admin/OrderAddItem.vue'
 import OrderPos from '~/components/admin/OrderPos.vue'
 import FoodThumbnail from '~/components/admin/FoodThumbnail.vue'
 import { ElMessageBox } from 'element-plus'
@@ -54,9 +55,16 @@ const selectedOrder = ref<IOrder>()
 const saving = ref(false)
 const submittingId = ref<number | null>(null)
 const deletingId = ref<number | null>(null)
+// Add-item dialog keeps its target separate from the create/edit POS form.
+const addItemVisible = ref(false)
+const addItemOrder = ref<IOrder | null>(null)
+const addingItem = ref(false)
 const mutationInProgress = computed(
   () =>
-    saving.value || submittingId.value !== null || deletingId.value !== null,
+    saving.value ||
+    addingItem.value ||
+    submittingId.value !== null ||
+    deletingId.value !== null,
 )
 
 // Presentation helpers for localized item labels, dates, and status badges.
@@ -244,11 +252,54 @@ async function deleteOrder(order: IOrder) {
   }
 }
 
+// Append an item through the dedicated endpoint; existing lines are never resubmitted.
+function canAddItem(order: IOrder) {
+  return ['DRAFT', 'PENDING', 'PREPARING', 'READY'].includes(order.status)
+}
+
+function openAddItem(order: IOrder) {
+  if (
+    !canManageOrders.value ||
+    !canAddItem(order) ||
+    mutationInProgress.value ||
+    dialogVisible.value ||
+    addItemVisible.value
+  )
+    return
+  addItemOrder.value = order
+  addItemVisible.value = true
+}
+
+async function saveAdditionalItem(item: {
+  itemId: number
+  quantity: number
+  unitPrice: string
+  discount: string
+  note: string
+}) {
+  if (!canManageOrders.value || mutationInProgress.value || !addItemOrder.value)
+    return
+  addingItem.value = true
+  try {
+    await useApi<{ payload: IOrder }>(
+      `${endpoint}/${addItemOrder.value.id}/items`,
+      { method: 'post', body: item },
+    )
+    addItemVisible.value = false
+    useMessage(t('order.item_added'))
+    await loadOrders()
+  } catch (error) {
+    useMessage(errorMessage(error, t('order.item_add_error')), 'error')
+  } finally {
+    addingItem.value = false
+  }
+}
+
 // Lifecycle: load the list and invalidate pending requests when leaving the page.
 onMounted(() => {
   void loadOrders()
 })
-onBeforeRouteLeave(() => !saving.value)
+onBeforeRouteLeave(() => !saving.value && !addingItem.value)
 onBeforeUnmount(() => {
   requestId++
 })
@@ -265,18 +316,17 @@ onBeforeUnmount(() => {
           </h1>
           <p class="mt-1 text-sm text-slate-500">{{ t('order.subtitle') }}</p>
         </div>
-          <el-button
-            type="primary"
-            :icon="Plus"
-            size="large"
-            class="order-create-button"
-            :disabled="mutationInProgress"
-            v-if="canManageOrders"
-            @click="openForm()"
-            >
-              {{ t('order.create') }}
-          </el-button
+        <el-button
+          type="primary"
+          :icon="Plus"
+          size="large"
+          class="order-create-button"
+          :disabled="mutationInProgress"
+          v-if="canManageOrders"
+          @click="openForm()"
         >
+          {{ t('order.create') }}
+        </el-button>
       </header>
       <div class="order-list-surface">
         <!-- Search the catalog of orders and refresh the current page. -->
@@ -481,6 +531,19 @@ onBeforeUnmount(() => {
                 >
                   <Icon name="gg:push-chevron-right-o" />
                 </el-button>
+                <!-- Add more item to order -->
+                <el-button
+                  v-if="canAddItem(row)"
+                  :disabled="mutationInProgress"
+                  @click="openAddItem(row)"
+                  :aria-label="`${t('order.add_item')}: ${row.orderNumber}`"
+                  type="primary"
+                  size="large"
+                  round
+                  plain
+                >
+                  <Icon name="ant-design:plus-circle-outlined" />
+                </el-button>
                 <el-button
                   type="success"
                   :aria-label="`${t('order.edit')}: ${row.orderNumber}`"
@@ -523,6 +586,23 @@ onBeforeUnmount(() => {
         </div>
       </div>
       <!-- Fullscreen POS shared by create and edit features. -->
+      <!-- Add one item to an existing order without opening the full POS editor. -->
+      <el-dialog
+        v-model="addItemVisible"
+        :title="`${t('order.add_item')} — ${addItemOrder?.orderNumber ?? ''}`"
+        width="min(520px, 94vw)"
+        destroy-on-close
+        :show-close="!addingItem"
+        :close-on-click-modal="!addingItem"
+        :close-on-press-escape="!addingItem"
+      >
+        <OrderAddItem
+          v-if="addItemVisible"
+          :saving="addingItem"
+          @submit="saveAdditionalItem"
+          @close="addItemVisible = false"
+        />
+      </el-dialog>
       <el-dialog
         v-model="dialogVisible"
         fullscreen

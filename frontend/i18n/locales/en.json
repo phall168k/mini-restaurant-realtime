@@ -293,6 +293,8 @@
         }
     },
     "order": {
+        "item_added": "Item added to the order.",
+        "item_add_error": "Unable to add the item. Please try again.",
         "title": "Orders",
         "subtitle": "Manage restaurant orders and their items.",
         "create": "Create order",
