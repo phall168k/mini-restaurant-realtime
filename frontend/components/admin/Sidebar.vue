@@ -39,6 +39,15 @@ const groups = computed<{ label: string; items: MenuItem[] }[]>(() => [
           RoleEnum.COOKER,
         ], 
         enabled: true 
+      },
+      { 
+        label: t('payment.title'), 
+        to: '/admin/operation/payment', 
+        icon: 'f7:money-dollar-circle', 
+        roles: [
+          RoleEnum.CASHIER,
+        ], 
+        enabled: true 
       }
     ] 
   },

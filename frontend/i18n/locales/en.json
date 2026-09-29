@@ -469,5 +469,56 @@
             "COMPLETED": "Completed",
             "CANCELED": "Canceled"
         }
+    },
+    "payment": {
+        "title": "Payment",
+        "subtitle": "Collect payments for ready and served orders.",
+        "ready": "Ready for pay",
+        "history": "Payments",
+        "records": "{count} records",
+        "search": "Search orders or payments",
+        "search_button": "Search",
+        "refresh": "Refresh",
+        "order": "Order",
+        "table": "Table",
+        "status": "Status",
+        "created": "Created at",
+        "action": "Action",
+        "pay_now": "Pay Now",
+        "number": "Payment number",
+        "method": "Payment method",
+        "total": "Total",
+        "receivedAmount": "Received amount",
+        "changeAmount": "Change",
+        "reference": "Reference number",
+        "cashier": "Cashier",
+        "item": "Item",
+        "quantity": "Qty",
+        "price": "Unit price",
+        "discount": "Discount",
+        "subtotal": "Subtotal",
+        "attachment": "Attachment (optional)",
+        "cancel": "Cancel",
+        "save": "Save payment",
+        "empty_ready": "No orders ready for payment",
+        "empty_history": "No payments found",
+        "load_error": "Unable to load payments. Please try again.",
+        "detail_error": "This order could not be loaded or is no longer ready for payment. Refresh the list.",
+        "save_error": "Unable to save payment. Please try again.",
+        "saved": "Payment saved successfully",
+        "invalid_totals": "Order pricing is missing or invalid. Refresh the order before payment.",
+        "invalid_amount": "Enter a valid amount with up to two decimal places.",
+        "insufficient": "Received amount must cover the total.",
+        "exact_amount": "Card and KHQR payments must match the total exactly.",
+        "methods": {
+            "CASH": "Cash",
+            "CARD": "Card",
+            "KHQR": "KHQR"
+        },
+        "statuses": {
+            "COMPLETED": "Completed",
+            "VOIDED": "Voided",
+            "REFUNDED": "Refunded"
+        }
     }
 }
