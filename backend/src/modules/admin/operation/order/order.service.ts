@@ -27,6 +27,7 @@ import { RealtimeService } from '../../../realtime/realtime.service';
 import { RoleEnum } from '../../../../libs/enums/role.enum';
 import { RealtimeEvent } from '../../../../libs/constants/realtime-event.constant';
 import { CreateOrderItemRequestDto } from './dto/create-order-item-request.dto';
+import { OrderSelectOptionResponseDto } from './dto/order-select-option-response.dto';
 
 @Injectable()
 export class OrderService extends BaseCrudService<
@@ -174,6 +175,29 @@ export class OrderService extends BaseCrudService<
         this.notifyKitchen(order);
       }
       return order;
+    } catch (error) {
+      handleError(error);
+    }
+  }
+
+  // select options
+  async selectOptions(status: OrderStatus): Promise<OrderSelectOptionResponseDto[]> {
+    try {
+      const entities = await this.repository.find({
+        relations: {
+          table: true,
+        },
+        where: {
+          status,
+        },
+        order: {
+          createdAt: 'DESC',
+        },
+      });
+      const items = Promise.all(
+        entities.map((item) => OrderMapper.toSelectOptionDto(item)),
+      );
+      return items;
     } catch (error) {
       handleError(error);
     }

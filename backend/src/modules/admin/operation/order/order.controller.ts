@@ -42,6 +42,8 @@ import { UserResponseDto } from '../../system/user/dto/user-response.dto';
 import { Roles } from '../../../auth/decorators/roles.decorator';
 import { RoleEnum } from '../../../../libs/enums/role.enum';
 import { PaginationResponseDto } from '../../../../libs/services/pagination/pagination-response.dto';
+import { OrderStatus } from '../../../../libs/enums/order-status.enum';
+import { OrderSelectOptionResponseDto } from './dto/order-select-option-response.dto';
 
 @ApiTags('Orders')
 @ApiBearerAuth(SWAGGER_TOKEN_NAME)
@@ -131,6 +133,15 @@ export class OrderController {
     status: OrderItemStatus,
   ): Promise<OrderItemResponseDto[]> {
     return this.orderService.itemOrderList(status);
+  }
+
+  @Get('select-options')
+  @Roles(RoleEnum.RECEPTIONIST, RoleEnum.CASHIER)
+  @ApiOperation({ summary: 'Find order for select options' })
+  @ApiParam({ name: 'status', enum: OrderStatus, required: true, description: 'Filter orders by status', })
+  @ApiOkResponse({ type: [OrderSelectOptionResponseDto] })
+  public findAllForSelectOptions(@Query('status') status: OrderStatus): Promise<OrderSelectOptionResponseDto[]> {
+    return this.orderService.selectOptions(status);
   }
 
   @Get(':id')

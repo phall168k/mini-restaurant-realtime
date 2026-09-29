@@ -6,6 +6,7 @@ import {
 import { ItemMapper } from '../../master-data/item/item.mapper';
 import { RestaurantTableMapper } from '../../master-data/restaurant-table/restaurant-table.mapper';
 import { UserMapper } from '../../system/user/user.mapper';
+import { OrderSelectOptionResponseDto } from './dto/order-select-option-response.dto';
 export class OrderMapper {
   static async toDto(entity: OrderEntity): Promise<OrderResponseDto> {
     return Object.assign(new OrderResponseDto(), {
@@ -41,5 +42,18 @@ export class OrderMapper {
           }),
         ),
     });
+  }
+
+  public static async toSelectOptionDto(entity: OrderEntity): Promise<OrderSelectOptionResponseDto> {
+    const dto = new OrderSelectOptionResponseDto();
+
+    dto.id = entity.id;
+    dto.orderNumber = entity.orderNumber;
+    dto.status = entity.status;
+    if (entity.table) {
+      dto.table = await RestaurantTableMapper.toDto(entity.table);
+    }
+
+    return dto;
   }
 }
