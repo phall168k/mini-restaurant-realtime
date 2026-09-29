@@ -15,5 +15,6 @@ import { RealtimeModule } from '../../../realtime/realtime.module';
   ],
   controllers: [OrderController],
   providers: [OrderService],
+  exports: [OrderService],
 })
 export class OrderModule {}

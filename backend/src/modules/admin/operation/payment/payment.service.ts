@@ -2,6 +2,7 @@ import {
   BadRequestException,
   ConflictException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -16,23 +17,32 @@ import { PaymentStatus } from '../../../../libs/enums/payment-status.enum';
 import { PaymentMethodEnum } from '../../../../libs/enums/payment-method.enum';
 import { UserEntity } from '../../system/user/entities/user.entity';
 import { OrderEntity } from '../order/entities/order.entity';
+import { RestaurantTableEntity } from '../../master-data/restaurant-table/entities/restaurant-table.entity';
+import { RestaurantTableStatuseEnum } from '../../../../libs/enums/restaurant-table-status.enum';
 import { PaymentEntity } from './entities/payment.entity';
 import { PaymentResponseDto } from './dto/payment-response.dto';
 import { CreatePaymentRequestDto } from './dto/create-payment-request.dto';
 import { PaymentMapper } from './payment.mapper';
 import { calculatePaymentTotals } from './payment-totals';
+import { RealtimeService } from '../../../realtime/realtime.service';
+import { RoleEnum } from '../../../../libs/enums/role.enum';
+import { RealtimeEvent } from '../../../../libs/constants/realtime-event.constant';
+import { OrderService } from '../order/order.service';
 
 @Injectable()
 export class PaymentService extends BaseCrudService<
   PaymentEntity,
   PaymentResponseDto
 > {
+  private readonly realtimeLogger = new Logger(PaymentService.name);
   protected queryName = 'payment';
   protected SEARCH_FIELDS = ['paymentNo', 'referenceNo', 'order.orderNumber'];
   protected FILTER_FIELDS = ['paymentNo', 'referenceNo'];
   constructor(
     @InjectRepository(PaymentEntity)
     private readonly repository: Repository<PaymentEntity>,
+    private readonly realtimeService: RealtimeService,
+    private readonly orderService: OrderService,
   ) {
     super();
   }
@@ -101,7 +111,7 @@ export class PaymentService extends BaseCrudService<
     paidByUserId: number,
   ): Promise<PaymentResponseDto> {
     try {
-      return await this.repository.manager.transaction(async (manager) => {
+      const result = await this.repository.manager.transaction(async (manager) => {
         const locked = await manager.findOne(OrderEntity, {
           where: { id: dto.orderId },
           lock: { mode: 'pessimistic_write' },
@@ -165,8 +175,27 @@ export class PaymentService extends BaseCrudService<
           { id: order.id },
           { status: OrderStatus.PAID },
         );
+        // Release the paid order's table in the same transaction as the payment.
+        const tableUpdate = await manager.update(
+          RestaurantTableEntity,
+          { id: order.tableId },
+          { status: RestaurantTableStatuseEnum.AVAILABLE },
+        );
+        if (tableUpdate.affected !== 1)
+          throw new NotFoundException('Restaurant table not found');
         return PaymentMapper.toDto(await this.load(manager, payment.id));
       });
+      // The reloaded order contains PAID; notify only after the transaction commits.
+      try {
+        this.realtimeService.emitToRoles(
+          [`role:${RoleEnum.RECEPTIONIST}`, `role:${RoleEnum.COOKER}`, `role:${RoleEnum.CASHIER}`],
+          RealtimeEvent.ORDER_STATUS_CHANGED,
+          result.order,
+        );
+      } catch (error) {
+        this.realtimeLogger.error('Payment saved but order status notification failed', error);
+      }
+      return result;
     } catch (error) {
       handleError(error);
     }

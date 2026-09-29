@@ -71,6 +71,7 @@ export class PaymentEntity extends BaseEntity {
   })
   @JoinColumn({ name: 'paid_by_user_id' })
   paidByUser: UserEntity;
-  @Column({ type: 'jsonb', array: true, nullable: true }) attachment:
+  // Store the attachment list as one JSON array, not a PostgreSQL jsonb[] array.
+  @Column({ type: 'jsonb', nullable: true }) attachment:
     AttachmentDto[] | null;
 }
