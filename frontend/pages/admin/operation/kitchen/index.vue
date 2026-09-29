@@ -4,7 +4,10 @@ import FoodThumbnail from '~/components/admin/FoodThumbnail.vue'
 import { Refresh, Search } from '@element-plus/icons-vue'
 import en from 'element-plus/es/locale/lang/en'
 import km from 'element-plus/es/locale/lang/km'
-import type { OrderStatus, OrderItemStatus } from '~/constants/order-status'
+import {
+  type OrderStatus,
+  type OrderItemStatus,
+} from '~/constants/order-status'
 import type { IOrder, IOrderLine, IOrderListResponse } from '~/types/order'
 import type { IItem } from '~/types/item'
 import { RealtimeEvent } from '~/constants/realtime-events'
@@ -322,19 +325,43 @@ function handleSetItemForExistOrder(item: KitchenOrder) {
   }
 }
 
+// Find the served order by its header ID and update its existing lines in place.
+function handleOrderStatusChange(item: IOrder) {
+  if (
+    !item ||
+    !Number.isInteger(item.id) ||
+    item.id <= 0 ||
+    item.status !== 'SERVED'
+  )
+    return
+
+  function markServed(order: KitchenOrder | null | undefined) {
+    if (!order || order.id !== item.id) return
+    order.status = 'SERVED'
+    for (const line of order.items) {
+      line.status = 'SERVED'
+    }
+  }
+
+  markServed(orders.value.find((order) => order.id === item.id))
+  markServed(drawerOrder.value)
+}
+
 // Load initially and register each listener once for this page instance.
 onMounted(() => {
   void loadOrders()
   $socket.on(RealtimeEvent.KITCHEN_ORDER_NEW, handleNewOrder)
   $socket.on(RealtimeEvent.ORDER_ITEM_ADD_MORE, handleSetItemForExistOrder)
+  $socket.on(RealtimeEvent.ORDER_STATUS_CHANGED, handleOrderStatusChange)
 })
 
-// Invalidate outstanding responses and remove both listeners when leaving the page.
+// Invalidate outstanding responses and remove all listeners when leaving the page.
 onBeforeUnmount(() => {
   listRequest++
   detailRequest++
   $socket.off(RealtimeEvent.KITCHEN_ORDER_NEW, handleNewOrder)
   $socket.off(RealtimeEvent.ORDER_ITEM_ADD_MORE, handleSetItemForExistOrder)
+  $socket.off(RealtimeEvent.ORDER_STATUS_CHANGED, handleOrderStatusChange)
 })
 </script>
 
