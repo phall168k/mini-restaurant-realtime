@@ -436,7 +436,14 @@ export class OrderService extends BaseCrudService<
         this.realtimeService.emitToRoles(
           [`role:${RoleEnum.RECEPTIONIST}`, `role:${RoleEnum.COOKER}`],
           RealtimeEvent.ORDER_ITEM_STATUS_CHANGED,
-          result,
+          {
+            id: result.orderId,
+            status: result.orderStatus,
+            item: {
+              orderItemId: result.id,
+              status: result.status,
+            },
+          },
         );
       } catch (error) {
         this.realtimeLogger.error('Item saved but status notification failed', error);
