@@ -61,6 +61,7 @@ const selectedOrder = ref<IOrder>()
 const saving = ref(false)
 const submittingId = ref<number | null>(null)
 const deletingId = ref<number | null>(null)
+const servingId = ref<number | null>(null)
 // Add-item dialog keeps its target separate from the create/edit POS form.
 const addItemVisible = ref(false)
 const addItemOrder = ref<IOrder | null>(null)
@@ -70,7 +71,8 @@ const mutationInProgress = computed(
     saving.value ||
     addingItem.value ||
     submittingId.value !== null ||
-    deletingId.value !== null,
+    deletingId.value !== null ||
+    servingId.value !== null,
 )
 
 // Presentation helpers for localized item labels, dates, and status badges.
@@ -232,6 +234,42 @@ async function submitToKitchen(order: IOrder) {
   }
 }
 
+// Confirm serving a ready order, then refresh status-filtered results after saving.
+async function serveOrder(order: IOrder) {
+  if (
+    !canManageOrders.value ||
+    mutationInProgress.value ||
+    order.status !== 'READY'
+  )
+    return
+  servingId.value = order.id
+  try {
+    await ElMessageBox.confirm(
+      t('order.serve_confirm', { name: order.orderNumber }),
+      t('order.serve'),
+      {
+        confirmButtonText: t('order.serve'),
+        cancelButtonText: t('order.cancel'),
+        type: 'warning',
+      },
+    )
+    const response = await useApi<{ payload: IOrder }>(
+      `${endpoint}/${order.id}/serve`,
+      { method: 'post' },
+    )
+    const index = orders.value.findIndex((item) => item.id === order.id)
+    if (index !== -1) orders.value[index] = response.payload
+    useMessage(t('order.served_success'))
+    await loadOrders()
+  } catch (error) {
+    if (error === 'cancel' || error === 'close') return
+    useMessage(errorMessage(error, t('order.serve_error')), 'error')
+    await loadOrders()
+  } finally {
+    servingId.value = null
+  }
+}
+
 // Confirm deletion and keep the row busy until the request completes.
 async function deleteOrder(order: IOrder) {
   if (!canManageOrders.value || mutationInProgress.value) return
@@ -355,7 +393,9 @@ onMounted(() => {
   void loadOrders()
   $socket.on(RealtimeEvent.ORDER_ITEM_STATUS_CHANGED, handleOrderStatusChange)
 })
-onBeforeRouteLeave(() => !saving.value && !addingItem.value)
+onBeforeRouteLeave(
+  () => !saving.value && !addingItem.value && servingId.value === null,
+)
 onBeforeUnmount(() => {
   requestId++
   $socket.off(RealtimeEvent.ORDER_ITEM_STATUS_CHANGED, handleOrderStatusChange)
@@ -601,6 +641,22 @@ onBeforeUnmount(() => {
                 >
                   <Icon name="ant-design:plus-circle-outlined" />
                 </el-button>
+                <!-- Finished button: only ready orders can be marked served. -->
+                <el-button
+                  v-if="row.status === 'READY'"
+                  type="success"
+                  :aria-label="`${t('order.serve')}: ${row.orderNumber}`"
+                  :title="t('order.serve')"
+                  :loading="servingId === row.id"
+                  :disabled="mutationInProgress"
+                  size="large"
+                  round
+                  plain
+                  @click="serveOrder(row)"
+                >
+                  <Icon name="lucide:check-check" />
+                </el-button>
+                <!-- Edit order -->
                 <el-button
                   type="success"
                   :aria-label="`${t('order.edit')}: ${row.orderNumber}`"

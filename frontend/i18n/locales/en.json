@@ -293,6 +293,10 @@
         }
     },
     "order": {
+        "serve": "Mark as served",
+        "serve_confirm": "Mark order \"{name}\" and its ready items as served?",
+        "served_success": "Order marked as served.",
+        "serve_error": "Unable to serve the order. Please try again.",
         "item_added": "Item added to the order.",
         "item_add_error": "Unable to add the item. Please try again.",
         "title": "Orders",
