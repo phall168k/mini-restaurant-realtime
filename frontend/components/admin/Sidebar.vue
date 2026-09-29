@@ -19,7 +19,29 @@ interface MenuItem {
 }
 
 const groups = computed<{ label: string; items: MenuItem[] }[]>(() => [
-  { label: t('navigation.operation'), items: [{ label: t('order.title'), to: '/admin/operation/order', icon: 'hugeicons:shopping-basket-01', roles: [RoleEnum.RECEPTIONIST, RoleEnum.COOKER, RoleEnum.CASHIER], enabled: true }, { label: t('kitchen.title'), to: '/admin/operation/kitchen', icon: 'hugeicons:chef-hat', roles: [RoleEnum.COOKER, RoleEnum.RECEPTIONIST], enabled: true }] },
+  { 
+    label: t('navigation.operation'), 
+    items: [
+      { 
+        label: t('order.title'), 
+        to: '/admin/operation/order', 
+        icon: 'hugeicons:shopping-basket-01', 
+        roles: [
+          RoleEnum.RECEPTIONIST, 
+        ],
+        enabled: true 
+      }, 
+      { 
+        label: t('kitchen.title'), 
+        to: '/admin/operation/kitchen', 
+        icon: 'hugeicons:chef-hat', 
+        roles: [
+          RoleEnum.COOKER,
+        ], 
+        enabled: true 
+      }
+    ] 
+  },
   {
     label: t('navigation.workspace'),
     items: [
@@ -30,25 +52,6 @@ const groups = computed<{ label: string; items: MenuItem[] }[]>(() => [
       }
 
     ]
-  },
-  {
-    label: t('navigation.system'),
-    items: [
-      { 
-        label: t('role.title'), 
-        to: '/admin/system/role', 
-        icon: 'hugeicons:shield-01', 
-        superUserOnly: true,
-        enabled: true 
-      },
-      { 
-        label: t('user.title'), 
-        to: '/admin/system/user', 
-        icon: 'boxicons:user-id-card', 
-        superUserOnly: true,
-        enabled: true 
-      },
-    ],
   },
   {
     label: t('navigation.master_data'),
@@ -76,6 +79,25 @@ const groups = computed<{ label: string; items: MenuItem[] }[]>(() => [
       },
     ],
   },
+  {
+    label: t('navigation.system'),
+    items: [
+      { 
+        label: t('role.title'), 
+        to: '/admin/system/role', 
+        icon: 'hugeicons:shield-01', 
+        superUserOnly: true,
+        enabled: true 
+      },
+      { 
+        label: t('user.title'), 
+        to: '/admin/system/user', 
+        icon: 'boxicons:user-id-card', 
+        superUserOnly: true,
+        enabled: true 
+      },
+    ],
+  }, 
 ])
 
 function canViewItem(item: MenuItem) {
@@ -104,7 +126,9 @@ function isActive(path: string) {
     class="fixed inset-y-0 left-0 z-50 flex w-[248px] flex-col border-r border-slate-200 bg-white transition-[width,transform] duration-200 motion-reduce:transition-none md:translate-x-0"
     :class="[collapsed ? 'md:w-20' : 'md:w-[248px]', mobileOpen ? 'translate-x-0' : '-translate-x-full max-md:invisible']">
     <NuxtLink to="/" aria-label="Mini Restaurant dashboard" class="flex h-[72px] shrink-0 items-center gap-3 overflow-hidden whitespace-nowrap px-[22px] focus-visible:outline focus-visible:outline-teal-700">
-      <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-teal-700 text-3xl font-extrabold text-white">m<span class="text-teal-200">.</span></span>
+      <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-teal-700 text-3xl font-extrabold text-white">
+        <Icon name="arcticons:emoji-pot-of-food"/>
+      </span>
       <span :class="{ 'md:hidden': collapsed }">
         <strong class="block text-sm">{{ $t('app.name') }}</strong>
         <small class="mt-1 block text-[8px] tracking-widest text-slate-500">MANAGEMENT SYSTEM</small>
