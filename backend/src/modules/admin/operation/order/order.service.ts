@@ -119,6 +119,7 @@ export class OrderService extends BaseCrudService<
     manager: EntityManager,
     orderId: number,
     dto: UpdateOrderRequestDto,
+    orderStatus: OrderStatus,
   ) {
     if (dto.items === undefined) return;
     await manager.softDelete(OrderItemEntity, { orderId });
@@ -131,7 +132,11 @@ export class OrderService extends BaseCrudService<
           quantity: line.quantity,
           unitPrice: line.unitPrice,
           discount: line.discount ?? '0.00',
-          status: line.status,
+          status: orderStatus === OrderStatus.DRAFT
+            ? OrderItemStatus.DRAFT
+            : line.status === OrderItemStatus.DRAFT
+              ? OrderItemStatus.PENDING
+              : line.status ?? OrderItemStatus.PENDING,
           note: line.note ?? null,
         }),
       ),
@@ -153,7 +158,7 @@ export class OrderService extends BaseCrudService<
             createdByUserId: dto.createdByUserId,
           }),
         );
-        await this.saveLines(manager, entity.id, dto);
+        await this.saveLines(manager, entity.id, dto, status);
         await manager.update(
           RestaurantTableEntity,
           { id: dto.tableId },
@@ -221,6 +226,11 @@ export class OrderService extends BaseCrudService<
             'An order must contain at least one item',
           );
         }
+        // Draft lines become visible to the kitchen only when the order is submitted.
+        await manager.update(OrderItemEntity,
+          { orderId: id, status: OrderItemStatus.DRAFT },
+          { status: OrderItemStatus.PENDING },
+        );
         entity.status = OrderStatus.PENDING;
         await manager.save(OrderEntity, entity);
         return OrderMapper.toDto(await this.load(manager, id));
@@ -271,7 +281,16 @@ export class OrderService extends BaseCrudService<
             Object.assign(entity, { [field]: dto[field] });
         }
         await manager.save(OrderEntity, entity);
-        await this.saveLines(manager, id, dto);
+        await this.saveLines(manager, id, dto, entity.status);
+        // Header-only edits must keep the existing lines consistent as well.
+        if (entity.status === OrderStatus.DRAFT) {
+          await manager.update(OrderItemEntity, { orderId: id }, { status: OrderItemStatus.DRAFT });
+        } else {
+          await manager.update(OrderItemEntity,
+            { orderId: id, status: OrderItemStatus.DRAFT },
+            { status: OrderItemStatus.PENDING },
+          );
+        }
         return OrderMapper.toDto(await this.load(manager, id));
       });
     } catch (error) {
@@ -291,6 +310,70 @@ export class OrderService extends BaseCrudService<
         await manager.softRemove(OrderEntity, entity);
         return OrderMapper.toDto(entity);
       });
+    } catch (error) {
+      handleError(error);
+    }
+  }
+
+
+// ===================================
+// Kitchen operations
+// ===================================
+  async changeItemStatus(orderItemId: number, status: OrderItemStatus) {
+    try {
+      const result = await this.repository.manager.transaction(async (manager) => {
+        const existing = await manager.findOne(OrderItemEntity, { where: { id: orderItemId } });
+        if (!existing) throw new NotFoundException('Order item not found');
+        // Serialize changes to different items of the same order before aggregating.
+        const order = await manager.findOne(OrderEntity, {
+          where: { id: existing.orderId },
+          lock: { mode: 'pessimistic_write' },
+        });
+        if (!order) throw new NotFoundException('Order not found');
+        if (![OrderStatus.PENDING, OrderStatus.PREPARING, OrderStatus.READY].includes(order.status)) {
+          throw new ConflictException('This order cannot be changed in the kitchen');
+        }
+        const line = await manager.findOne(OrderItemEntity, {
+          where: { id: orderItemId, orderId: order.id },
+          lock: { mode: 'pessimistic_write' },
+        });
+        if (!line) throw new NotFoundException('Order item not found');
+        const allowed: Partial<Record<OrderItemStatus, OrderItemStatus[]>> = {
+          [OrderItemStatus.PENDING]: [OrderItemStatus.PREPARING, OrderItemStatus.READY, OrderItemStatus.CANCELED],
+          [OrderItemStatus.PREPARING]: [OrderItemStatus.READY, OrderItemStatus.CANCELED],
+          [OrderItemStatus.READY]: [OrderItemStatus.SERVED, OrderItemStatus.CANCELED],
+        };
+        if (!allowed[line.status]?.includes(status)) {
+          throw new ConflictException(`Cannot change ${line.status} to ${status}`);
+        }
+        const update = await manager.update(OrderItemEntity,
+          { id: orderItemId, status: line.status }, { status });
+        if (!update.affected) throw new ConflictException('Item changed. Refresh and try again.');
+        const items = await manager.find(OrderItemEntity, { where: { orderId: order.id } });
+        const active = items.filter(item => item.status !== OrderItemStatus.CANCELED);
+        let orderStatus = order.status;
+        // Served items have already completed preparation; canceled items do not block readiness.
+        if (active.length && active.every(item => [OrderItemStatus.READY, OrderItemStatus.SERVED].includes(item.status))) {
+          orderStatus = OrderStatus.READY;
+        } else if (order.status === OrderStatus.PENDING && active.some(item =>
+          [OrderItemStatus.PREPARING, OrderItemStatus.READY, OrderItemStatus.SERVED].includes(item.status))) {
+          orderStatus = OrderStatus.PREPARING;
+        }
+        if (orderStatus !== order.status) {
+          await manager.update(OrderEntity, { id: order.id }, { status: orderStatus });
+        }
+        return { id: line.id, orderId: line.orderId, status, orderStatus };
+      });
+      try {
+        this.realtimeService.emitToRoles(
+          [`role:${RoleEnum.RECEPTIONIST}`, `role:${RoleEnum.COOKER}`],
+          RealtimeEvent.ORDER_ITEM_STATUS_CHANGED,
+          result,
+        );
+      } catch (error) {
+        this.realtimeLogger.error('Item saved but status notification failed', error);
+      }
+      return result;
     } catch (error) {
       handleError(error);
     }

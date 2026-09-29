@@ -162,6 +162,15 @@ export class OrderController {
   ): Promise<OrderResponseDto> {
     return this.orderService.submitToKitchen(id);
   }
+  
+  @Post(':id/change-item-status')
+  @Roles(RoleEnum.RECEPTIONIST, RoleEnum.COOKER)
+  public changeItemStatus(
+    @Param('id', ParseIntPipe) id: number,
+    @Body('status', new ParseEnumPipe(OrderItemStatus)) status: OrderItemStatus,
+  ) {
+    return this.orderService.changeItemStatus(id, status);
+  }
 
   @Put(':id')
   @Roles(RoleEnum.RECEPTIONIST)
