@@ -287,29 +287,54 @@ async function makeAllReady() {
   }
 }
 
-//========================
-// Realtime Features
-//========================
-const { $socket } = useNuxtApp();
+// Realtime events refresh the server-filtered list instead of appending out-of-page orders.
+const { $socket } = useNuxtApp()
 
-// Handle set new item for ordering
-const handleNewOrder = (item: IOrder) => {
-  orders.value.push(item);
+function handleNewOrder() {
+  void loadOrders()
 }
 
-// Load the list initially and invalidate pending requests when leaving the page.
-onMounted(() => {
-  void loadOrders();
-  $socket.on(RealtimeEvent.KITCHEN_ORDER_NEW, handleNewOrder);
-});
+// Add-more events contain only new lines, so merge by line ID without replacing existing items.
+function handleSetItemForExistOrder(item: KitchenOrder) {
+  if (!item || !Number.isInteger(item.id) || !Array.isArray(item.items)) return
 
+  function mergeItems(order: KitchenOrder | null | undefined) {
+    if (!order || order.id !== item.id) return
+    order.status = item.status
+    for (const line of item.items) {
+      const existing = order.items.find((existing) => existing.id === line.id)
+      if (existing) Object.assign(existing, line)
+      else order.items.push({ ...line })
+    }
+  }
+
+  mergeItems(orders.value.find((order) => order.id === item.id))
+  mergeItems(drawerOrder.value)
+
+  // Header changes may move orders into or out of the selected status/page.
+  void loadOrders()
+  if (
+    drawerVisible.value &&
+    drawerOrderId.value === item.id &&
+    drawerLoading.value
+  ) {
+    void openDetails(item.id)
+  }
+}
+
+// Load initially and register each listener once for this page instance.
+onMounted(() => {
+  void loadOrders()
+  $socket.on(RealtimeEvent.KITCHEN_ORDER_NEW, handleNewOrder)
+  $socket.on(RealtimeEvent.ORDER_ITEM_ADD_MORE, handleSetItemForExistOrder)
+})
+
+// Invalidate outstanding responses and remove both listeners when leaving the page.
 onBeforeUnmount(() => {
   listRequest++
   detailRequest++
-  $socket.off(
-    RealtimeEvent.KITCHEN_ORDER_NEW,
-    handleNewOrder,
-  );
+  $socket.off(RealtimeEvent.KITCHEN_ORDER_NEW, handleNewOrder)
+  $socket.off(RealtimeEvent.ORDER_ITEM_ADD_MORE, handleSetItemForExistOrder)
 })
 </script>
 
