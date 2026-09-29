@@ -265,15 +265,17 @@ onBeforeUnmount(() => {
           </h1>
           <p class="mt-1 text-sm text-slate-500">{{ t('order.subtitle') }}</p>
         </div>
-        <el-button
-          type="primary"
-          :icon="Plus"
-          size="large"
-          class="order-create-button"
-          :disabled="mutationInProgress"
-          v-if="canManageOrders"
-          @click="openForm()"
-          >{{ t('order.create') }}</el-button
+          <el-button
+            type="primary"
+            :icon="Plus"
+            size="large"
+            class="order-create-button"
+            :disabled="mutationInProgress"
+            v-if="canManageOrders"
+            @click="openForm()"
+            >
+              {{ t('order.create') }}
+          </el-button
         >
       </header>
       <div class="order-list-surface">
@@ -473,6 +475,8 @@ onBeforeUnmount(() => {
                   :loading="submittingId === row.id"
                   :disabled="mutationInProgress"
                   size="large"
+                  round
+                  plain
                   @click="submitToKitchen(row)"
                 >
                   <Icon name="gg:push-chevron-right-o" />
@@ -480,8 +484,10 @@ onBeforeUnmount(() => {
                 <el-button
                   type="success"
                   :aria-label="`${t('order.edit')}: ${row.orderNumber}`"
+                  round
                   size="large"
                   :disabled="mutationInProgress"
+                  plain
                   @click="openForm(row)"
                 >
                   <Icon name="akar-icons:edit" />
@@ -494,6 +500,7 @@ onBeforeUnmount(() => {
                   :loading="deletingId === row.id"
                   :disabled="mutationInProgress"
                   @click="deleteOrder(row)"
+                  round
                 >
                   <Icon name="fluent:delete-24-regular" />
                 </el-button>
