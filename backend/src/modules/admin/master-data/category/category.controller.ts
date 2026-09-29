@@ -66,7 +66,7 @@ export class CategoryController {
   }
 
   @Get('select-options')
-  @Roles(RoleEnum.ADMIN)
+  @Roles(RoleEnum.ADMIN, RoleEnum.RECEPTIONIST)
   @ApiOperation({ summary: 'List category select options', description: 'Returns category IDs, codes, and names ordered by English name.' })
   @ApiOkResponse({ type: [CategorySelectOptionResponseDto] })
   public findForSelectOptions(): Promise<CategorySelectOptionResponseDto[]> {
