@@ -35,6 +35,7 @@ import {
 } from '@nestjs/common';
 import { OrderService } from './order.service';
 import { CreateOrderRequestDto } from './dto/create-order-request.dto';
+import { CreateOrderItemRequestDto } from './dto/create-order-item-request.dto';
 import { UpdateOrderRequestDto } from './dto/update-order-request.dto';
 import { CurrentUser } from '../../../auth/decorators/current-user.decorator';
 import { UserResponseDto } from '../../system/user/dto/user-response.dto';
@@ -143,6 +144,28 @@ export class OrderController {
     @Param('id', ParseIntPipe) id: number,
   ): Promise<OrderResponseDto> {
     return this.orderService.findOne(id);
+  }
+
+  // Append one item while preserving all existing order lines.
+  @Post(':id/items')
+  @Roles(RoleEnum.RECEPTIONIST)
+  @ApiOperation({
+    summary: 'Add an item to an order',
+    description:
+      'Appends a separate line and returns the updated order. Draft orders receive a DRAFT item. Active orders receive a PENDING item and their header becomes PENDING; the kitchen is notified after saving. The supplied item status is ignored. Served, paid, and canceled orders reject additions.',
+  })
+  @ApiParam({ name: 'id', type: Number, description: 'Order ID' })
+  @ApiBody({ type: CreateOrderItemRequestDto })
+  @ApiCreatedResponse({ type: OrderResponseDto })
+  @ApiNotFoundResponse({ description: 'Order or menu item not found' })
+  @ApiConflictResponse({ description: 'Order is no longer draft or active' })
+  @ApiBadRequestResponse({ description: 'Invalid order ID' })
+  @ApiUnprocessableEntityResponse({ description: 'Invalid item data' })
+  public addItemToOrder(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() item: CreateOrderItemRequestDto,
+  ): Promise<OrderResponseDto> {
+    return this.orderService.addItemToOrder(id, item);
   }
 
   @Post(':id/submit')

@@ -26,6 +26,7 @@ import { OrderItemResponseDto } from './dto/order-item-response.dto';
 import { RealtimeService } from '../../../realtime/realtime.service';
 import { RoleEnum } from '../../../../libs/enums/role.enum';
 import { RealtimeEvent } from '../../../../libs/constants/realtime-event.constant';
+import { CreateOrderItemRequestDto } from './dto/create-order-item-request.dto';
 
 @Injectable()
 export class OrderService extends BaseCrudService<
@@ -178,6 +179,60 @@ export class OrderService extends BaseCrudService<
     }
   }
 
+  // Append a new line without replacing existing items or their preparation states.
+  async addItemToOrder(
+    orderId: number,
+    item: CreateOrderItemRequestDto,
+  ): Promise<OrderResponseDto> {
+    try {
+      const { updatedOrder, addedItemId } = await this.repository.manager.transaction(async (manager) => {
+        // Share the order lock used by edits and kitchen status changes.
+        const order = await manager.findOne(OrderEntity, {
+          where: { id: orderId },
+          lock: { mode: 'pessimistic_write' },
+        });
+        if (!order) throw new NotFoundException('Order not found');
+        if (![OrderStatus.DRAFT, OrderStatus.PENDING, OrderStatus.PREPARING, OrderStatus.READY].includes(order.status)) {
+          throw new ConflictException('Items can only be added to draft or active orders');
+        }
+        await this.validateRelations(manager, { items: [item] });
+
+        // New items must go through preparation regardless of a supplied item status.
+        const addedItem = await manager.save(OrderItemEntity, manager.create(OrderItemEntity, {
+          orderId,
+          itemId: item.itemId,
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
+          discount: item.discount ?? '0.00',
+          note: item.note ?? null,
+          status: order.status === OrderStatus.DRAFT
+            ? OrderItemStatus.DRAFT
+            : OrderItemStatus.PENDING,
+        }));
+
+        // New pending work returns the header to Pending without changing existing lines.
+        if (order.status !== OrderStatus.DRAFT && order.status !== OrderStatus.PENDING) {
+          await manager.update(OrderEntity, { id: orderId }, { status: OrderStatus.PENDING });
+        }
+        return {
+          updatedOrder: await OrderMapper.toDto(await this.load(manager, orderId)),
+          addedItemId: addedItem.id,
+        };
+      });
+      // Notify only after commit so the kitchen can load the newly saved item.
+      if (updatedOrder.status === OrderStatus.PENDING) {
+        // Match the inserted line ID, since the same menu item can appear more than once.
+        this.notifyAddMoreItemKitchen({
+          ...updatedOrder,
+          items: updatedOrder.items.filter(line => line.id === addedItemId),
+        });
+      }
+      return updatedOrder;
+    } catch (error) {
+      handleError(error);
+    }
+  }
+
   // Listing order item for cooker
   async itemOrderList(status: OrderItemStatus = OrderItemStatus.PENDING): Promise<OrderItemResponseDto[]> {
     try {
@@ -250,6 +305,19 @@ export class OrderService extends BaseCrudService<
       this.realtimeService.emitToRole(
         `role:${RoleEnum.COOKER}`,
         RealtimeEvent.KITCHEN_ORDER_NEW,
+        order,
+      );
+    } catch (error) {
+      // The order is committed; a notification failure must not report a failed save.
+      this.realtimeLogger.error('Order saved but kitchen notification failed', error);
+    }
+  }
+
+  private notifyAddMoreItemKitchen(order: OrderResponseDto): void {
+    try {
+      this.realtimeService.emitToRole(
+        `role:${RoleEnum.COOKER}`,
+        RealtimeEvent.ORDER_ITEM_ADD_MORE,
         order,
       );
     } catch (error) {
