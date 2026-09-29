@@ -666,6 +666,7 @@ onBeforeUnmount(() => {
                   }}</span>
                 </el-button>
                 <el-button
+                  v-if="['PENDING', 'PREPARING'].includes(line.status)"
                   class="kitchen-cancel-action"
                   type="danger"
                   text
