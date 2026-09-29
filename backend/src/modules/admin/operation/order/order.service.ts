@@ -53,10 +53,11 @@ export class OrderService extends BaseCrudService<
   protected getFilters(): QueryFilters<OrderEntity> {
     const filters: QueryFilters<OrderEntity> = {
       status: (query, value) => {
-        if (!Object.values(OrderStatus).includes(value as OrderStatus))
+        const statuses = typeof value === 'string' ? value.split(',') : [];
+        if (!statuses.length || statuses.some(status => !Object.values(OrderStatus).includes(status as OrderStatus)))
           throw new BadRequestException('Invalid order status');
-        return query.andWhere('orders.status = :order_status', {
-          order_status: value,
+        return query.andWhere('orders.status IN (:...order_status)', {
+          order_status: statuses,
         });
       },
     };

@@ -42,14 +42,14 @@ export class PaymentController {
   @Post()
   @Roles(RoleEnum.CASHIER)
   @ApiOperation({
-    summary: 'Pay a served order',
+    summary: 'Pay a ready or served order',
     description:
       'Generates a payment number, calculates totals excluding canceled lines, and marks the order PAID atomically. Discount includes per-item discounts multiplied by quantity plus the order discount. paidByUserId comes from authentication. Cash may receive change; CARD/KHQR must match the total. Records payment only; does not charge a card or verify a bank transfer.',
   })
   @ApiBody({ type: CreatePaymentRequestDto })
   @ApiCreatedResponse({ type: PaymentResponseDto })
   @ApiNotFoundResponse({ description: 'Order or user not found' })
-  @ApiConflictResponse({ description: 'Order already paid or not served' })
+  @ApiConflictResponse({ description: 'Order already paid or not ready or served' })
   @ApiBadRequestResponse({
     description: 'Invalid amounts or insufficient payment',
   })

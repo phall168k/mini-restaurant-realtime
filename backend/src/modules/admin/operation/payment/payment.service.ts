@@ -115,8 +115,8 @@ export class PaymentService extends BaseCrudService<
         ) {
           throw new ConflictException('This order already has a payment');
         }
-        if (locked.status !== OrderStatus.SERVED)
-          throw new ConflictException('Only served orders can be paid');
+        if (![OrderStatus.READY, OrderStatus.SERVED].includes(locked.status))
+          throw new ConflictException('Only ready or served orders can be paid');
         if (!(await manager.findOneBy(UserEntity, { id: paidByUserId })))
           throw new NotFoundException('Paying user not found');
         const order = await manager.findOne(OrderEntity, {
@@ -127,13 +127,13 @@ export class PaymentService extends BaseCrudService<
         if (
           order.items.some(
             (line) =>
-              ![OrderItemStatus.SERVED, OrderItemStatus.CANCELED].includes(
+              ![OrderItemStatus.READY, OrderItemStatus.SERVED, OrderItemStatus.CANCELED].includes(
                 line.status,
               ),
           )
         ) {
           throw new ConflictException(
-            'All non-canceled items must be served before payment',
+            'All non-canceled items must be ready or served before payment',
           );
         }
         const totals = calculatePaymentTotals(order, dto.receivedAmount);

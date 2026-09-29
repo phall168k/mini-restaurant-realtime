@@ -90,7 +90,7 @@ export class OrderController {
     required: false,
     description: 'Case-insensitive partial order number match',
   })
-  @ApiQuery({ name: 'status', type: String, required: false })
+  @ApiQuery({ name: 'status', type: String, required: false, description: 'One status or comma-separated statuses, e.g. READY,SERVED' })
   @ApiQuery({
     name: 'tableId',
     type: Number,
