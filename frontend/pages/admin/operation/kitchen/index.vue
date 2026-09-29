@@ -7,6 +7,7 @@ import km from 'element-plus/es/locale/lang/km'
 import type { OrderStatus, OrderItemStatus } from '~/constants/order-status'
 import type { IOrder, IOrderLine, IOrderListResponse } from '~/types/order'
 import type { IItem } from '~/types/item'
+import { RealtimeEvent } from '~/constants/realtime-events'
 
 // The orders endpoint may return item details without line pricing or notes.
 type KitchenLine = Omit<
@@ -122,7 +123,7 @@ function itemName(line: KitchenLine) {
 function statusType(status: string): 'info' | 'warning' | 'success' | 'danger' {
   if (status === 'CANCELED') return 'danger'
   if (['READY', 'SERVED', 'PAID'].includes(status)) return 'success'
-  if (status === 'PREPARING') return 'warning'
+  if (['PENDING', 'PREPARING'].includes(status)) return 'warning'
   return 'info'
 }
 function formatDate(value: string) {
@@ -286,13 +287,29 @@ async function makeAllReady() {
   }
 }
 
+//========================
+// Realtime Features
+//========================
+const { $socket } = useNuxtApp();
+
+// Handle set new item for ordering
+const handleNewOrder = (item: IOrder) => {
+  orders.value.push(item);
+}
+
 // Load the list initially and invalidate pending requests when leaving the page.
 onMounted(() => {
-  void loadOrders()
-})
+  void loadOrders();
+  $socket.on(RealtimeEvent.KITCHEN_ORDER_NEW, handleNewOrder);
+});
+
 onBeforeUnmount(() => {
   listRequest++
   detailRequest++
+  $socket.off(
+    RealtimeEvent.KITCHEN_ORDER_NEW,
+    handleNewOrder,
+  );
 })
 </script>
 
