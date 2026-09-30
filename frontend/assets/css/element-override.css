@@ -1,0 +1,40 @@
+:root {
+  --app-font-family: "Nokora", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --el-font-family: var(--app-font-family) !important;
+  --el-color-primary: #35776E !important; /* your primary color */
+
+  /* Optional: automatically adjust shades */
+  --el-color-primary-light-3: #439186 !important;
+  --el-color-primary-light-5: #4aa79a !important;
+  --el-color-primary-dark-2: #58d8c7 !important;
+}
+
+html,
+body,
+#__nuxt {
+  font-family: var(--app-font-family);
+}
+
+body,
+button,
+input,
+textarea,
+select {
+  font-family: inherit;
+}
+
+.el-popper,
+.el-overlay,
+.el-message,
+.el-notification,
+.el-message-box,
+.el-dialog,
+.el-table,
+.el-menu,
+.el-form,
+.el-button,
+.el-input,
+.el-select,
+.el-pagination {
+  font-family: var(--app-font-family) !important;
+}

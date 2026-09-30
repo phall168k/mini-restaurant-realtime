@@ -23,6 +23,9 @@ export default defineNuxtConfig({
       Nokora: true,
     }
   },
+  css: [
+    '~/assets/css/element-override.css'
+  ],
   tailwindcss: {
     config: {
       theme: {
