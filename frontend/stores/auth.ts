@@ -20,13 +20,13 @@ export const useAuthStore = defineStore('auth', () => {
             const response = await useApi<ISignInResponse>('auth/sign-in', {
                 method: 'post',
                 body: payload,
-            });
+            }, false);
             accessToken.value = response.payload.token.accessToken;
             users.value = response.payload.users;
             user.value = response.payload.users;
             await navigateTo('/');
         } catch (error) {
-            console.log('Error', error);
+            throw error;
         }
     }
 
