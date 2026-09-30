@@ -471,6 +471,11 @@
         }
     },
     "payment": {
+        "print": "Print receipt",
+        "history_print_error": "Could not load or print the receipt. Please try again.",
+        "receipt": "Receipt",
+        "print_receipt": "Print last receipt",
+        "print_error": "Payment saved, but the receipt could not print. Use Print last receipt to try again.",
         "title": "Payment",
         "subtitle": "Collect payments for ready and served orders.",
         "ready": "Ready for pay",

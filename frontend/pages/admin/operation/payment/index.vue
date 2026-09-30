@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { Refresh, Search } from '@element-plus/icons-vue'
+import { printPaymentReceipt } from '~/utils/printPaymentReceipt'
+import { Printer, Refresh, Search } from '@element-plus/icons-vue'
 import en from 'element-plus/es/locale/lang/en'
 import km from 'element-plus/es/locale/lang/km'
 import SingleFileUpload from '~/components/admin/SingleFileUpload.vue'
@@ -33,6 +34,26 @@ const detailLoading = ref(false)
 const detailError = ref('')
 const selected = ref<IOrder | null>(null)
 const saving = ref(false)
+const lastReceipt = ref<IPayment | null>(null)
+const printing = ref(false)
+const printingPaymentId = ref<number | null>(null)
+async function printHistoryReceipt(payment: IPayment) {
+  if (printing.value) return
+  printing.value = true
+  printingPaymentId.value = payment.id
+  try {
+    const response = await useApi<{ payload: IPayment }>(`admin/operation/payments/${payment.id}`)
+    await printPaymentReceipt(response.payload, locale.value, t)
+  } catch { useMessage(t('payment.history_print_error'), 'error') }
+  finally { printing.value = false; printingPaymentId.value = null }
+}
+async function printReceipt() {
+  if (!lastReceipt.value || printing.value) return
+  printing.value = true
+  try { await printPaymentReceipt(lastReceipt.value, locale.value, t) }
+  catch { useMessage(t('payment.print_error'), 'error') }
+  finally { printing.value = false }
+}
 const uploadBusy = ref(false)
 const uploader = ref<InstanceType<typeof SingleFileUpload>>()
 const attachment = ref<IAttachment | null>(null)
@@ -126,12 +147,13 @@ async function closeDrawer(done?: () => void) {
   detailRequest++; drawer.value = false; done?.()
 }
 async function savePayment() {
-  if (!canPay.value || busy.value || !selected.value || amountError.value) return
+  if (!canPay.value || busy.value || !selected.value || detailLoading.value || amountError.value) return
   saving.value = true
   try {
-    await useApi('admin/operation/payments', { method: 'post', body: {
+    const response = await useApi<{ payload: IPayment }>('admin/operation/payments', { method: 'post', body: {
       orderId: selected.value.id, paymentMethod: method.value, receivedAmount: amount(cents(received.value)), referenceNo: reference.value.trim(), attachment: attachment.value ? [attachment.value] : [],
     } })
+    lastReceipt.value = response.payload
   } catch (error) {
     useMessage(errorMessage(error, t('payment.save_error')), 'error')
     saving.value = false
@@ -141,11 +163,13 @@ async function savePayment() {
   await uploader.value?.commit()
   drawer.value = false; selected.value = null; saving.value = false
   useMessage(t('payment.saved'))
+  await printReceipt()
   await loadList()
 }
 const { $socket } = useNuxtApp()
 const events = [RealtimeEvent.ORDER_READY, RealtimeEvent.ORDER_STATUS_CHANGED, RealtimeEvent.ORDER_ITEM_STATUS_CHANGED, RealtimeEvent.ORDER_CANCELED]
 function refresh() { void loadList() }
+
 onMounted(() => { refresh(); events.forEach(event => $socket.on(event, refresh)) })
 onBeforeRouteLeave(async () => {
   if (busy.value) return false
@@ -161,6 +185,7 @@ onBeforeUnmount(() => { request++; detailRequest++; events.forEach(event => $soc
         <h1 class="text-2xl font-semibold text-slate-900">{{ t('payment.title') }}</h1>
         <p class="mt-1 text-sm text-slate-500">{{ t('payment.subtitle') }}</p>
       </header>
+      <el-button v-if="lastReceipt" class="mb-4" :loading="printing" @click="printReceipt">{{ t('payment.print_receipt') }}</el-button>
       <el-tabs v-model="tab" @tab-change="resetList">
         <el-tab-pane :label="t('payment.ready')" name="ready" />
         <el-tab-pane :label="t('payment.history')" name="history" />
@@ -189,6 +214,11 @@ onBeforeUnmount(() => { request++; detailRequest++; events.forEach(event => $soc
           <el-table-column prop="referenceNo" :label="t('payment.reference')" min-width="150" />
           <el-table-column :label="t('payment.cashier')" min-width="140"><template #default="{ row }">{{ row.paidByUser?.username || '—' }}</template></el-table-column>
           <el-table-column :label="t('payment.created')" min-width="200"><template #default="{ row }">{{ formatDate(row.createdAt) }}</template></el-table-column>
+          <el-table-column :label="t('payment.action')" width="180" fixed="right">
+            <template #default="{ row }">
+              <el-button :icon="Printer" :loading="printingPaymentId === row.id" :disabled="printing || busy" @click="printHistoryReceipt(row)">{{ t('payment.print') }}</el-button>
+            </template>
+          </el-table-column>
         </el-table>
         <div class="overflow-x-auto p-4"><el-pagination v-model:current-page="page" v-model:page-size="pageSize" :total="total" :page-sizes="[10, 20, 50]" layout="total, sizes, prev, pager, next" @size-change="resetList" @current-change="loadList" /></div>
       </div>
