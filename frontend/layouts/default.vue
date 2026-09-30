@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Menu } from '@element-plus/icons-vue'
+import { Menu, SwitchButton } from '@element-plus/icons-vue'
 import AdminSidebar from '~/components/admin/Sidebar.vue'
 import AdminBreadcrumbs from '~/components/admin/Breadcrumbs.vue'
 import type { ILanguage } from '~/types/language'
@@ -8,6 +8,14 @@ const { t, locale, setLocale } = useI18n()
 const changingLanguage = ref(false)
 const route = useRoute()
 const auth = useAuthStore()
+const loggingOut = ref(false)
+async function logout() {
+  if (loggingOut.value) return
+  loggingOut.value = true
+  try { await auth.logout() }
+  catch { useMessage(t('auth.logout_error'), 'error') }
+  finally { loggingOut.value = false }
+}
 const collapsed = ref(false)
 const mobileOpen = ref(false)
 
@@ -131,11 +139,28 @@ onBeforeUnmount(() => window.removeEventListener('keydown', handleKeydown))
             9
           </span>
         </div>
-        <div class="hidden text-right sm:block">
-          <strong class="block max-w-40 truncate text-xs font-semibold">{{ displayName }}</strong>
-          <small class="mt-1 block text-[10px] text-slate-500">{{ displayRoles }}</small>
-        </div>
-        <span class="flex h-9 w-9 items-center justify-center rounded-full bg-teal-50 text-xs font-bold text-teal-700" :aria-label="displayName">{{ initials }}</span>
+        <el-dropdown trigger="click" placement="bottom-end" :disabled="loggingOut" @command="logout">
+          <button
+            type="button"
+            class="flex items-center gap-3 rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-teal-700 disabled:cursor-wait disabled:opacity-60"
+            :disabled="loggingOut"
+            :aria-label="displayName"
+            :aria-busy="loggingOut"
+          >
+            <span class="hidden text-right sm:block">
+              <strong class="block max-w-40 truncate text-xs font-semibold">{{ displayName }}</strong>
+              <small class="mt-1 block text-[10px] text-slate-500">{{ displayRoles }}</small>
+            </span>
+            <span class="flex h-9 w-9 items-center justify-center rounded-full bg-teal-50 text-xs font-bold text-teal-700">{{ initials }}</span>
+          </button>
+          <template #dropdown>
+            <el-dropdown-menu>
+              <el-dropdown-item command="logout" :icon="SwitchButton" :disabled="loggingOut">
+                {{ t('auth.logout') }}
+              </el-dropdown-item>
+            </el-dropdown-menu>
+          </template>
+        </el-dropdown>
       </div>
     </header>
 

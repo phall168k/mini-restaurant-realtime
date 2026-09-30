@@ -1,5 +1,4 @@
 import type { ISignIn, ISignInResponse } from '~/types/sign-in'
-import type { IToken } from '~/types/token'
 import type { IUser } from '~/types/user'
 
 const cookieOptions = {
@@ -9,6 +8,7 @@ const cookieOptions = {
 }
 
 export const useAuthStore = defineStore('auth', () => {
+    const { $socket } = useNuxtApp();
     const user = ref<IUser | null>(null);
     const accessToken = useCookie<string | null>('accessToken', cookieOptions);
     const users = useCookie<IUser | null>('users', cookieOptions);
@@ -30,7 +30,20 @@ export const useAuthStore = defineStore('auth', () => {
         }
     }
 
+    const logout = async () => {
+        accessToken.value = null;
+        users.value = null;
+        user.value = null;
+        if (import.meta.client) {
+            $socket.disconnect();
+            $socket.auth = {};
+        }
+        // Reload to discard all authenticated page/store state and replace history.
+        await navigateTo('/auth/sign-in', { external: true, replace: true });
+    }
+
     return {
+        logout,
         user,
         accessToken,
         users,

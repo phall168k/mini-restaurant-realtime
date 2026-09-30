@@ -2,6 +2,10 @@
     "app": {
         "name": "Mini Restaurant"
     },
+    "auth": {
+        "logout": "Logout",
+        "logout_error": "Unable to finish logging out. Please reload the page."
+    },
     "sign_in": {
         "username": "Username",
         "password": "Password",
