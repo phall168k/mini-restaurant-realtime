@@ -3,7 +3,7 @@ import OrderAddItem from '~/components/admin/OrderAddItem.vue'
 import OrderPos from '~/components/admin/OrderPos.vue'
 import FoodThumbnail from '~/components/admin/FoodThumbnail.vue'
 import { ElMessageBox } from 'element-plus'
-import { Plus, Search, Refresh } from '@element-plus/icons-vue'
+import { Plus, Search, Refresh, Promotion, Select, EditPen, Delete } from '@element-plus/icons-vue'
 import en from 'element-plus/es/locale/lang/en'
 import km from 'element-plus/es/locale/lang/km'
 import type { IUser } from '~/types/user'
@@ -633,72 +633,58 @@ onBeforeUnmount(() => {
             fixed="right"
           >
             <template #default="{ row }">
-              <div class="flex items-center gap-2">
+              <!-- Give the next workflow step priority; keep supporting actions compact. -->
+              <div class="order-actions" role="group" :aria-label="`${t('order.actions')}: ${row.orderNumber}`">
                 <el-button
                   v-if="row.status === 'DRAFT'"
-                  :aria-label="`${t('order.submit_kitchen')}: ${row.orderNumber}`"
+                  class="order-action-primary"
                   type="primary"
+                  :icon="Promotion"
+                  :aria-label="`${t('order.submit_kitchen')}: ${row.orderNumber}`"
                   :loading="submittingId === row.id"
                   :disabled="mutationInProgress"
-                  size="large"
-                  round
-                  plain
                   @click="submitToKitchen(row)"
-                >
-                  <Icon name="gg:push-chevron-right-o" />
-                </el-button>
-                <!-- Add more item to order -->
-                <el-button
-                  v-if="canAddItem(row)"
-                  :disabled="mutationInProgress"
-                  @click="openAddItem(row)"
-                  :aria-label="`${t('order.add_item')}: ${row.orderNumber}`"
-                  type="primary"
-                  size="large"
-                  round
-                  plain
-                >
-                  <Icon name="ant-design:plus-circle-outlined" />
-                </el-button>
-                <!-- Finished button: only ready orders can be marked served. -->
+                >{{ t('order.submit_kitchen') }}</el-button>
                 <el-button
                   v-if="row.status === 'READY'"
+                  class="order-action-primary order-action-serve"
                   type="success"
+                  :icon="Select"
                   :aria-label="`${t('order.serve')}: ${row.orderNumber}`"
-                  :title="t('order.serve')"
                   :loading="servingId === row.id"
                   :disabled="mutationInProgress"
-                  size="large"
-                  round
-                  plain
                   @click="serveOrder(row)"
-                >
-                  <Icon name="lucide:check-check" />
-                </el-button>
-                <!-- Edit order -->
-                <el-button
-                  type="success"
-                  :aria-label="`${t('order.edit')}: ${row.orderNumber}`"
-                  round
-                  size="large"
-                  :disabled="mutationInProgress"
-                  plain
-                  @click="openForm(row)"
-                >
-                  <Icon name="akar-icons:edit" />
-                </el-button>
-                <el-button
-                  :aria-label="`${t('order.delete')}: ${row.orderNumber}`"
-                  plain
-                  type="danger"
-                  size="large"
-                  :loading="deletingId === row.id"
-                  :disabled="mutationInProgress"
-                  @click="deleteOrder(row)"
-                  round
-                >
-                  <Icon name="fluent:delete-24-regular" />
-                </el-button>
+                >{{ t('order.serve') }}</el-button>
+                <div class="order-action-tools">
+                  <el-button
+                    v-if="canAddItem(row)"
+                    class="order-action-add"
+                    :icon="Plus"
+                    :disabled="mutationInProgress"
+                    :aria-label="`${t('order.add_item')}: ${row.orderNumber}`"
+                    @click="openAddItem(row)"
+                  >{{ t('order.add_item') }}</el-button>
+                  <el-tooltip :content="t('order.edit')" placement="top" :show-after="250">
+                    <el-button
+                      class="order-action-icon"
+                      :icon="EditPen"
+                      :aria-label="`${t('order.edit')}: ${row.orderNumber}`"
+                      :disabled="mutationInProgress"
+                      @click="openForm(row)"
+                    />
+                  </el-tooltip>
+                  <span class="order-action-divider" aria-hidden="true" />
+                  <el-tooltip :content="t('order.delete')" placement="top" :show-after="250">
+                    <el-button
+                      class="order-action-icon order-action-delete"
+                      :icon="Delete"
+                      :aria-label="`${t('order.delete')}: ${row.orderNumber}`"
+                      :loading="deletingId === row.id"
+                      :disabled="mutationInProgress"
+                      @click="deleteOrder(row)"
+                    />
+                  </el-tooltip>
+                </div>
               </div>
             </template>
           </el-table-column>
@@ -882,6 +868,91 @@ onBeforeUnmount(() => {
 .order-toolbar :deep(.el-input__wrapper),
 .order-toolbar :deep(.el-button) {
   border-radius: 9px;
+}
+/* Row actions: a clear primary step above a compact set of supporting tools. */
+.order-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+}
+.order-actions :deep(.el-button) {
+  height: 38px;
+  margin: 0;
+  border-radius: 10px;
+  font-weight: 600;
+  transition: background-color 0.15s, border-color 0.15s, box-shadow 0.15s;
+}
+.order-actions :deep(.el-button:focus-visible) {
+  outline: 2px solid #0f766e;
+  outline-offset: 3px;
+}
+.order-action-primary {
+  width: 100%;
+  --el-button-bg-color: #0f766e;
+  --el-button-border-color: #0f766e;
+  --el-button-hover-bg-color: #115e59;
+  --el-button-hover-border-color: #115e59;
+  --el-button-active-bg-color: #134e4a;
+  --el-button-active-border-color: #134e4a;
+}
+.order-action-primary :deep(span) {
+  white-space: normal;
+  line-height: 1.4;
+}
+.order-actions :deep(.order-action-primary) {
+  height: auto;
+  min-height: 40px;
+  padding: 10px 12px;
+}
+.order-action-serve {
+  --el-button-bg-color: #15803d;
+  --el-button-border-color: #15803d;
+  --el-button-hover-bg-color: #166534;
+  --el-button-hover-border-color: #166534;
+  --el-button-active-bg-color: #14532d;
+  --el-button-active-border-color: #14532d;
+}
+.order-action-tools {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.order-action-add {
+  flex: 1;
+  --el-button-bg-color: #f0fdfa;
+  --el-button-border-color: #ccfbf1;
+  --el-button-text-color: #0f766e;
+  --el-button-hover-bg-color: #ccfbf1;
+  --el-button-hover-border-color: #99f6e4;
+  --el-button-hover-text-color: #115e59;
+}
+.order-action-icon {
+  width: 38px;
+  flex-shrink: 0;
+  padding: 0;
+  --el-button-bg-color: #fff;
+  --el-button-border-color: #e2e8f0;
+  --el-button-text-color: #64748b;
+  --el-button-hover-bg-color: #f8fafc;
+  --el-button-hover-border-color: #cbd5e1;
+  --el-button-hover-text-color: #0f172a;
+}
+.order-action-divider {
+  height: 20px;
+  width: 1px;
+  flex-shrink: 0;
+  background: #e2e8f0;
+}
+.order-action-delete {
+  --el-button-border-color: transparent;
+  --el-button-text-color: #be123c;
+  --el-button-hover-bg-color: #fff1f2;
+  --el-button-hover-border-color: #fecdd3;
+  --el-button-hover-text-color: #9f1239;
+}
+@media (prefers-reduced-motion: reduce) {
+  .order-actions :deep(.el-button) { transition: none; }
 }
 @media (max-width: 640px) {
   .order-workspace {
