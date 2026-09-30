@@ -1,4 +1,55 @@
 {
+    "dashboard": {
+        "view": "Dashboard role",
+        "load_error": "Unable to load the dashboard. Please refresh to try again.",
+        "business_day": "Today: {date} · Cambodia time (UTC+7)",
+        "updated": "Updated {time}",
+        "kitchen_queue": "Kitchen queue",
+        "payment_queue": "Awaiting payment",
+        "active_queue": "Active orders",
+        "queue_hint": "Showing {shown} of {total} orders · oldest first, including previous days",
+        "empty_queue": "No orders waiting here.",
+        "workspace": "Your workspace",
+        "tables": "Table availability",
+        "tables_hint": "Current status of enabled tables.",
+        "recent_payments": "Today’s latest payments",
+        "my_recent_payments": "My latest payments today",
+        "payments_hint": "Up to 8 completed payments. Voided and refunded payments are excluded.",
+        "empty_payments": "No completed payments today.",
+        "roles": {
+            "Admin": "Admin",
+            "Receptionist": "Receptionist",
+            "Cooker": "Cooker",
+            "Cashier": "Cashier"
+        },
+        "descriptions": {
+            "Admin": "Monitor restaurant activity, table availability, and today’s sales.",
+            "Receptionist": "Keep tables moving and follow active orders from arrival to service.",
+            "Cooker": "Track pending dishes and prepare the oldest kitchen orders first.",
+            "Cashier": "Collect outstanding payments and review your collections today."
+        },
+        "actions": {
+            "Admin": "Manage tables",
+            "Receptionist": "Manage orders",
+            "Cooker": "Open kitchen",
+            "Cashier": "Collect payments"
+        },
+        "metrics": {
+            "active_orders": "Active orders",
+            "orders_today": "Orders created today",
+            "available_tables": "Available tables",
+            "occupied_tables": "Occupied tables",
+            "kitchen_orders": "Orders to prepare",
+            "pending_items": "Pending item quantity",
+            "preparing_items": "Preparing item quantity",
+            "ready_items": "Ready items in kitchen queue",
+            "awaiting_payment": "Orders awaiting payment",
+            "sales_today": "Sales today",
+            "my_sales_today": "My collections today",
+            "payments_today": "Completed payments today",
+            "my_payments_today": "My payments today"
+        }
+    },
     "app": {
         "name": "Mini Restaurant"
     },
